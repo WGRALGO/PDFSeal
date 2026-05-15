@@ -23,12 +23,18 @@ misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Keystore files
+# Keystore / signing secrets — NEVER commit
 *.jks
 *.keystore
+key.properties
+/release/
+/signing/
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
 # Android Profiling
 *.hprof
+
+# Kotlin
+.kotlin/
