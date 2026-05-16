@@ -3,7 +3,7 @@
 
   # PDFSeal
 
-  **Open-source Android PDF editor — local, offline, no accounts, no ads, no tracking.**
+  **Open-source offline Android PDF markup and flattened-export app — local, offline, no accounts, no ads, no tracking.**
 
   [Source code](https://github.com/WGRALGO/PDFSeal) · License: **AGPL-3.0-or-later**
 </div>
@@ -12,28 +12,54 @@
 
 ## What PDFSeal is
 
-PDFSeal is a serious, fully open-source Android PDF editor APK. It is not a thin PDF
-viewer. It is built around a dedicated internal PDF engine layer (MuPDF) with a clean
-separation between the engine and the UI — the UI never manipulates PDF files directly.
+PDFSeal is an open-source, offline Android PDF markup app. It can open PDFs, let
+users add new text, typed visual signatures, visual cover/replace blocks,
+OCR-assisted editable text overlays, and export a flattened edited copy.
+
+PDFSeal is not Acrobat. It does not claim native word-processor-style editing of
+the original PDF text stream. It does not provide certified cryptographic digital
+signatures. Its Cover & Replace tool is visual only and is not secure redaction.
 
 Everything runs **on-device**. No cloud upload, no server processing, no account,
 no analytics, no ads, no trackers, no Google Play Services.
 
-## What PDFSeal does (target feature set)
+## Important limits
+
+PDFSeal exports flattened visual copies. It does not preserve all original PDF
+structures.
+
+- Cover & Replace is visual only. It is not secure redaction.
+- Visual Signature is a typed visual mark only. It is not a certified
+  cryptographic digital signature.
+- Make Editable Copy uses OCR and editable overlays. It does not edit the
+  original PDF text stream like a word processor.
+- Export may not preserve forms, links, bookmarks, layers, annotations,
+  selectable text, accessibility structure, metadata, or existing digital
+  signatures.
+
+## What PDFSeal currently does
 
 - Open local PDFs via the Android Storage Access Framework (SAF)
 - View, zoom, pan, page navigation, page thumbnails
 - **Add Text** — place new text boxes anywhere on a page
 - **Typed Visual Signature** — type your name, pick a signature style, place/move/resize/rotate, flatten on export. A *visual* mark only — **not** a certified cryptographic digital signature.
-- **Cover & Replace** — visually cover a rectangular area and put replacement text on top
+- **Cover & Replace** — visually cover a rectangular area and put replacement text on top (visual only — **not** secure redaction)
 - **Make Editable Copy** — OCR a page, reconstruct editable text overlays, export a flattened edited copy
 - Offline OCR (current page / selected pages / whole PDF where performance allows)
-- Page tools — rotate, delete, reorder, merge, split (where feasible)
+- Page tools — rotate, delete, reorder a page
 - Export an edited **copy** by default; the original is never silently overwritten
+
+## Planned / future features
+
+These are **not** in the current APK:
+
+- Cross-file **merge** and page **split/extract** with a full
+  open → edit → export → reopen-elsewhere round trip
+- Additional OCR languages beyond English/Latin
 
 ## Current status
 
-> **Working build (v0.5.0).** Open / view / Add Text / Visual Signature /
+> **Working build (v0.5.1).** Open / view / Add Text / Visual Signature /
 > Cover & Replace / OCR / Make Editable Copy / page tools / flattened export
 > work end-to-end. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
