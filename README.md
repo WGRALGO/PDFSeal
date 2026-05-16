@@ -157,6 +157,19 @@ The per-ABI ARM APKs are only produced when you build with `-PabiSplit`
 (see below); the default build is always the single universal APK so emulators
 keep working.
 
+**Build provenance.** Every published release APK is built from a clean checkout
+of its release tag and embeds the exact source commit at
+`META-INF/version-control-info.textproto`. The APK build revision, the release
+tag, and the public source therefore match. Verify before trusting an APK:
+
+```bash
+# revision must equal the release tag's commit on this repo
+unzip -p PDFSeal-<ver>-<abi>.apk META-INF/version-control-info.textproto
+```
+
+The release notes for each version also list the exact build commit and the
+SHA-256 of every published APK.
+
 Release APKs are signed with a private key that is **never** committed to this
 repository. See [docs/RELEASING.md](docs/RELEASING.md).
 
