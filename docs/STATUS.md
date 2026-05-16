@@ -1,7 +1,9 @@
 # PDFSeal — Project Status
 
 Snapshot of where PDFSeal stands. For the plan see [ROADMAP.md](ROADMAP.md);
-for design see [ARCHITECTURE.md](ARCHITECTURE.md).
+for design see [ARCHITECTURE.md](ARCHITECTURE.md); for the release process see
+[RELEASING.md](RELEASING.md) (dual-APK arm64-v8a + universal flow with build
+provenance).
 
 _Last updated: 2026-05-16 — current `versionName` 1.0.0, `versionCode` 10._
 
@@ -9,7 +11,9 @@ _Last updated: 2026-05-16 — current `versionName` 1.0.0, `versionCode` 10._
 
 - **GitHub Release v1.0.0** — first stable GitHub sideload release
   (arm64-v8a + universal signed APKs + SHA-256 + signing-cert fingerprint).
-  See [TESTING.md](TESTING.md) for the release test matrix.
+  Built per [RELEASING.md](RELEASING.md) §4–§7 (`clean :app:assembleRelease
+  -PabiSplit`, provenance-verified). See [TESTING.md](TESTING.md) for the
+  release test matrix.
 - Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0`.
 
 ## Feature status
