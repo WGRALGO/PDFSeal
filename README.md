@@ -59,9 +59,11 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Working build: v0.5.1.** Open / view / Add Text / Visual Signature /
-> Cover & Replace / OCR / Make Editable Copy / page tools / flattened export
-> work end-to-end. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
+> **Stable release: v1.0.0** — the first stable GitHub sideload release.
+> Open / view / Add Text / Visual Signature / Cover & Replace / OCR / Make
+> Editable Copy / page tools / flattened export work end-to-end. See
+> [docs/TESTING.md](docs/TESTING.md) for the release test matrix,
+> [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
 
 Feature status is tracked honestly. Features are not shown as done until they

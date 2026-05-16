@@ -48,8 +48,8 @@ fun SignatureDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    "Visual typed-name signature only. This is not a " +
-                        "certified cryptographic digital signature.",
+                    org.thewealthgapresolutionalgorithm.pdfseal.ui
+                        .HonestCopy.SIGNATURE_WARNING,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
                 )

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PDFSeal</string>
-    <string name="tagline">Edit · Visual Signature · OCR · Organize</string>
+    <string name="tagline">Offline PDF markup and flattened-export app</string>
 </resources>

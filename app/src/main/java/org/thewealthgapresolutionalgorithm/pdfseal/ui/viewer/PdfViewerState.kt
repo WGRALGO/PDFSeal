@@ -67,7 +67,13 @@ class PdfViewerState(private val engine: PdfEngine) {
             zoom = 1f; panX = 0f; panY = 0f
             renderCurrent()
         } catch (e: Exception) {
-            lastMessage = "Open failed: ${e.message}"
+            // PdfEngine throws IOException with a user-facing message
+            // (password/encrypted, corrupt, no pages, lost permission).
+            // Surface it directly; fall back to a generic safe message.
+            lastMessage = e.message?.takeIf { it.isNotBlank() }
+                ?: "PDFSeal could not open this PDF. The file may be " +
+                "damaged, encrypted, or unsupported."
+            session = null
         } finally {
             busy = false
         }
@@ -185,7 +191,7 @@ class PdfViewerState(private val engine: PdfEngine) {
         try {
             lastOcr = engine.ocrPage(s, pageIndex)
         } catch (e: Exception) {
-            lastMessage = "OCR failed: ${e.message}"
+            lastMessage = "OCR failed on this page. Your PDF was not changed."
         } finally {
             busy = false
         }
@@ -207,10 +213,12 @@ class PdfViewerState(private val engine: PdfEngine) {
             lastMessage = if (overlays.isEmpty()) {
                 "No text recognised on this page."
             } else {
-                "${overlays.size} editable text boxes created. Review before export."
+                "${overlays.size} editable text boxes created. " +
+                    org.thewealthgapresolutionalgorithm.pdfseal.ui
+                        .HonestCopy.OCR_REVIEW_WARNING
             }
         } catch (e: Exception) {
-            lastMessage = "Make Editable Copy failed: ${e.message}"
+            lastMessage = "OCR failed on this page. Your PDF was not changed."
         } finally {
             busy = false
         }
@@ -262,14 +270,35 @@ class PdfViewerState(private val engine: PdfEngine) {
         session?.resetExportPlan(); planVersion++
     }
 
+    /** True if any page has a Cover & Replace object (not secure redaction). */
+    fun usesCoverReplace(): Boolean =
+        session?.edits?.values?.any { list ->
+            list.any { it is org.thewealthgapresolutionalgorithm.pdfseal
+                .engine.edit.CoverReplaceObject }
+        } ?: false
+
+    /**
+     * Default export filename: `original-name-PDFSeal-copy.pdf`. The export
+     * goes through the Storage Access Framework create-document flow, so the
+     * user picks the destination and Android creates a NEW document there —
+     * the source URI is never written. If the chosen folder already has this
+     * name, Android's document provider keeps both (it does not overwrite).
+     */
+    fun defaultExportName(): String {
+        val raw = session?.displayName ?: "document.pdf"
+        val base = raw.substringBeforeLast('.', raw).ifBlank { "document" }
+        return "$base-PDFSeal-copy.pdf"
+    }
+
     suspend fun export(targetUri: Uri) {
         val s = session ?: return
         busy = true
         try {
             engine.exportCopy(s, targetUri)
-            lastMessage = "Exported. Original unchanged."
+            lastMessage = "Exported a flattened copy. Original unchanged."
         } catch (e: Exception) {
-            lastMessage = "Export failed: ${e.message}"
+            lastMessage =
+                "Export failed. Your original PDF was not changed."
         } finally {
             busy = false
         }

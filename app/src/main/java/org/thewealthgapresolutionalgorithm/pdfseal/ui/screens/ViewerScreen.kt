@@ -64,6 +64,7 @@ fun ViewerScreen(
     var showPagesDialog by remember { mutableStateOf(false) }
     var showThumbs by remember { mutableStateOf(false) }
     var showExportWarning by remember { mutableStateOf(false) }
+    var showCoverWarning by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -126,7 +127,13 @@ fun ViewerScreen(
                 ) { Text("Visual Signature") }
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
-                    onClick = { state.coverMode = !state.coverMode },
+                    onClick = {
+                        if (state.coverMode) {
+                            state.coverMode = false
+                        } else {
+                            showCoverWarning = true
+                        }
+                    },
                 ) { Text(if (state.coverMode) "Cover…" else "Cover") }
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
@@ -249,24 +256,49 @@ fun ViewerScreen(
         )
     }
 
-    if (showExportWarning) {
+    if (showCoverWarning) {
         AlertDialog(
-            onDismissRequest = { showExportWarning = false },
-            title = { Text("Export creates a flattened visual copy") },
+            onDismissRequest = { showCoverWarning = false },
+            title = { Text("Cover & Replace") },
             text = {
                 Text(
-                    "Export creates a flattened visual PDF copy. Original PDF " +
-                        "objects such as forms, links, bookmarks, layers, " +
-                        "annotations, selectable text, accessibility structure, " +
-                        "metadata, or existing digital signatures may not be " +
-                        "preserved. The original file is not modified.",
+                    org.thewealthgapresolutionalgorithm.pdfseal.ui
+                        .HonestCopy.COVER_WARNING,
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
+                    showCoverWarning = false
+                    state.coverMode = true
+                }) { Text("I understand — start cover") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCoverWarning = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (showExportWarning) {
+        val body =
+            org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy
+                .EXPORT_CONFIRM +
+                if (state.usesCoverReplace()) {
+                    "\n\n" + org.thewealthgapresolutionalgorithm.pdfseal.ui
+                        .HonestCopy.EXPORT_COVER_NOTICE
+                } else {
+                    ""
+                }
+        AlertDialog(
+            onDismissRequest = { showExportWarning = false },
+            title = { Text("Export a flattened visual PDF copy") },
+            text = { Text(body) },
+            confirmButton = {
+                TextButton(onClick = {
                     showExportWarning = false
-                    exportLauncher.launch("PDFSeal-edited.pdf")
-                }) { Text("Export anyway") }
+                    exportLauncher.launch(state.defaultExportName())
+                }) { Text("Export Flattened Copy") }
             },
             dismissButton = {
                 TextButton(onClick = { showExportWarning = false }) {

@@ -3,14 +3,14 @@
 Snapshot of where PDFSeal stands. For the plan see [ROADMAP.md](ROADMAP.md);
 for design see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-_Last updated: 2026-05-16 — current `versionName` 0.4.0, `versionCode` 7._
+_Last updated: 2026-05-16 — current `versionName` 1.0.0, `versionCode` 10._
 
 ## Released
 
-- **GitHub Release v0.4.0** —
-  <https://github.com/WGRALGO/PDFSeal/releases/tag/v0.4.0>
-  (signed APK + SHA-256 + signing-cert fingerprint).
-- Tags: `v0.1.0`, `v0.4.0`.
+- **GitHub Release v1.0.0** — first stable GitHub sideload release
+  (arm64-v8a + universal signed APKs + SHA-256 + signing-cert fingerprint).
+  See [TESTING.md](TESTING.md) for the release test matrix.
+- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0`.
 
 ## Feature status
 
@@ -41,14 +41,23 @@ _Last updated: 2026-05-16 — current `versionName` 0.4.0, `versionCode` 7._
   is blocked only by needing source-built MuPDF/Tesseract (free-licensed, not a
   license problem).
 
-## Outstanding before a v1.0.0 tag
+## v1.0.0 — done at tag time
 
-- [ ] **On-device verification pass** on a real Android tablet, following the
-  test matrix in the main [README](../README.md#testing). The build
-  environment has no emulator/device, so the maintainer must run it:
-  open → edit (text/signature/cover/OCR/editable-copy/pages) → export →
-  reopen elsewhere → confirm the original is unchanged → confirm an
-  update APK installs over the previous one with the same signing key.
-- [ ] Fix anything that on-device testing surfaces.
+- Honest README, app UI, and About / Privacy / Licenses copy (single source:
+  `HonestCopy`).
+- First-launch limits screen (ack stored locally); same text in About.
+- Export confirmation before every export; Cover & Replace notice when used.
+- Cover / Signature / OCR tool warnings; post-OCR review warning.
+- No `INTERNET` (or any) permission; `allowBackup=false`; SAF-only file I/O;
+  original PDF never in a write path.
+- arm64-v8a + universal signed APKs, SHA-256, embedded build commit ==
+  `v1.0.0` tag.
+- Static test matrix PASS — see [TESTING.md](TESTING.md).
 
-Everything else for v1.0.0 is code-complete.
+## Maintainer follow-up (post-tag, on real hardware)
+
+- [ ] Run the **DEVICE** rows in [TESTING.md](TESTING.md) on a real Android
+  tablet/phone (build env has no emulator/device): install both APKs,
+  v0.5.1 → v1.0.0 in-place update, open/edit/export round trips, reopen
+  elsewhere, confirm original unchanged.
+- [ ] Fix anything on-device testing surfaces in a 1.0.x patch.

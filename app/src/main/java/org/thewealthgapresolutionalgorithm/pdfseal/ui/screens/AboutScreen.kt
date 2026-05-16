@@ -72,6 +72,16 @@ fun AboutScreen() {
 
         HorizontalDivider()
 
+        Text("What PDFSeal is", style = MaterialTheme.typography.titleMedium)
+        Text(org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy.ONE_LINER)
+        Text(
+            org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy
+                .FIRST_RUN_LIMITS,
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        HorizontalDivider()
+
         Text("Privacy & offline", style = MaterialTheme.typography.titleMedium)
         Text("• PDFSeal works fully offline.")
         Text("• PDFSeal does NOT request the Internet permission.")

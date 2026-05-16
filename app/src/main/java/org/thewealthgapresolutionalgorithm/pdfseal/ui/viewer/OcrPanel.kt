@@ -31,14 +31,21 @@ fun OcrPanel(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(
-                    "Offline OCR (Tesseract). OCR can make mistakes — review " +
-                        "before relying on the text.",
+                    org.thewealthgapresolutionalgorithm.pdfseal.ui
+                        .HonestCopy.OCR_WARNING,
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (state.busy) {
                     CircularProgressIndicator(Modifier.padding(top = 12.dp))
                 }
                 if (ocr != null && ocr.pageIndex == state.pageIndex) {
+                    Text(
+                        "⚠ " + org.thewealthgapresolutionalgorithm.pdfseal.ui
+                            .HonestCopy.OCR_REVIEW_WARNING,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
                     Text(
                         "Lines: ${ocr.boxes.size} · mean confidence: " +
                             "${ocr.meanConfidence.toInt()}% · lang ${ocr.language}",

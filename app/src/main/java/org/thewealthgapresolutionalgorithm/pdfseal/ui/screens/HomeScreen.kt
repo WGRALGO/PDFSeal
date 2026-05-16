@@ -44,7 +44,7 @@ fun HomeScreen(
     ) {
         Text("PDFSeal", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Edit · Visual Signature · OCR · Organize — local & offline",
+            org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy.ONE_LINER,
             style = MaterialTheme.typography.bodyMedium,
         )
 

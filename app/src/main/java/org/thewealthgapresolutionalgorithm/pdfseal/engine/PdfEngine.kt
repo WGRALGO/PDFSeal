@@ -51,8 +51,8 @@ class PdfEngine(context: Context) {
             } catch (e: Throwable) {
                 temp.delete()
                 throw java.io.IOException(
-                    "This PDF could not be opened. It may be corrupt, " +
-                        "truncated, or not a supported PDF.",
+                    "PDFSeal could not open this PDF. The file may be " +
+                        "damaged, encrypted, or unsupported.",
                     e,
                 )
             }
@@ -61,8 +61,8 @@ class PdfEngine(context: Context) {
                 runCatching { doc.destroy() }
                 temp.delete()
                 throw java.io.IOException(
-                    "This PDF is password-protected. PDFSeal cannot open " +
-                        "encrypted PDFs yet — remove the password first.",
+                    "This PDF is password-protected or encrypted. PDFSeal " +
+                        "cannot open encrypted PDFs yet.",
                 )
             }
 
