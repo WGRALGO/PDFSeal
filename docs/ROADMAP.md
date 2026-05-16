@@ -17,7 +17,7 @@ open → edit → export → reopen in another viewer, with the original unchang
 
 ## v0.2.0 — Signature, Cover & Replace, navigation
 - [x] Typed-name signature (3 OFL font styles), place/move, flatten on export
-- [ ] Cover & Replace (visual cover + replacement text) — **not** redaction
+- [x] Cover & Replace (visual cover + replacement text) — **not** redaction
 - [ ] Page thumbnails
 - [x] Recent files (persisted SAF permissions)
 
