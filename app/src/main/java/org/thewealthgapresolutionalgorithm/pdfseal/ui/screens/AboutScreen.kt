@@ -6,15 +6,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.thewealthgapresolutionalgorithm.pdfseal.BuildConfig
 
+/**
+ * About / Privacy / Licenses.
+ *
+ * Honest, non-misleading copy only. Third-party notices are read from the
+ * bundled asset THIRD_PARTY_LICENSES.md (copied from the repo root at build
+ * time — see app/build.gradle.kts), so what the user reads is exactly what
+ * ships in source.
+ */
 @Composable
 fun AboutScreen() {
+    val context = LocalContext.current
+
+    val licenses by produceState(initialValue = "Loading third-party notices…") {
+        value = withContext(Dispatchers.IO) {
+            runCatching {
+                context.assets.open("THIRD_PARTY_LICENSES.md")
+                    .bufferedReader().use { it.readText() }
+            }.getOrElse {
+                "THIRD_PARTY_LICENSES.md could not be read from the app " +
+                    "bundle: ${it.message}"
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -23,26 +51,63 @@ fun AboutScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("PDFSeal", style = MaterialTheme.typography.headlineMedium)
-        Text("Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+        Text("Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})")
         Text("License: AGPL-3.0-or-later")
-        Text("Source: ${BuildConfig.SOURCE_URL}")
+        Text("Source code: ${BuildConfig.SOURCE_URL}")
         Text(
-            "Privacy: PDFSeal is local and offline. No cloud upload, no server " +
-                "processing, no account, no analytics, no ads, no trackers, no " +
-                "Google Play Services.",
+            "(TODO: confirm the public repository URL above before any public " +
+                "release. PDFSeal links AGPL MuPDF, so it is NOT closed source — " +
+                "the full source must be provided to anyone who gets the app.)",
+            style = MaterialTheme.typography.bodySmall,
+        )
+
+        HorizontalDivider()
+
+        Text("Privacy & offline", style = MaterialTheme.typography.titleMedium)
+        Text("• PDFSeal works fully offline.")
+        Text("• PDFSeal does NOT request the Internet permission.")
+        Text("• PDFSeal does NOT upload your PDFs anywhere.")
+        Text(
+            "• No ads, no analytics, no trackers, no billing, no cloud sync, " +
+                "no account, no Google Play Services.",
         )
         Text(
-            "Honest features: Add Text adds new text; Cover & Replace is visual " +
-                "only and is NOT secure redaction; Make Editable Copy is OCR-based " +
-                "reconstruction, not native PDF text editing. OCR can make " +
-                "mistakes — review before relying on it.",
+            "• PDFSeal may temporarily process document data locally on this " +
+                "device while opening, OCRing, editing and exporting files. " +
+                "That processing never leaves the device.",
+        )
+
+        HorizontalDivider()
+
+        Text("Honest feature limits", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "• Export creates a FLATTENED VISUAL PDF copy, not a full " +
+                "native-object PDF edit. Original PDF objects (forms, links, " +
+                "bookmarks, layers, annotations, selectable text, accessibility " +
+                "structure, metadata, existing digital signatures) may not be " +
+                "preserved.",
         )
         Text(
-            "Third-party: MuPDF (AGPL-3.0), Tesseract4Android + Tesseract " +
-                "(Apache-2.0), Leptonica (BSD-2), AndroidX/Compose & Kotlin " +
-                "(Apache-2.0), signature fonts (SIL OFL 1.1). Full notices in " +
-                "THIRD_PARTY_LICENSES.md.",
+            "• \"Visual Signature\" is a typed/drawn visual mark only. It is " +
+                "NOT a certified cryptographic digital signature and has no " +
+                "legal signing guarantee.",
         )
+        Text(
+            "• Cover & Replace is a visual cover only — NOT secure redaction. " +
+                "Make Editable Copy is OCR reconstruction, not native text " +
+                "editing. OCR can make mistakes; review before relying on it.",
+        )
+
+        HorizontalDivider()
+
+        Text(
+            "Third-party software notices",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(licenses, style = MaterialTheme.typography.bodySmall)
+
+        HorizontalDivider()
+
         Text(
             "Signing certificate SHA-256:\n${BuildConfig.SIGNING_CERT_SHA256}",
             style = MaterialTheme.typography.bodySmall,

@@ -92,6 +92,23 @@ the same **AGPL-3.0-or-later** license as the rest of the source.
 
 ---
 
+## Source code availability (AGPL-3.0 obligation)
+
+PDFSeal links **MuPDF**, which is used here under the **GNU AGPL-3.0** option.
+Because of this, the *entire* PDFSeal application is distributed under
+AGPL-3.0-or-later and the complete corresponding source code MUST be made
+available to anyone who receives the app.
+
+PDFSeal is **not** a closed-source app and must never be described as one.
+
+Source code: https://github.com/WGRALGO/PDFSeal
+
+TODO: confirm/replace the public repository URL above before any public release.
+The same URL is compiled into the app (`BuildConfig.SOURCE_URL`) and shown on
+the in-app About / Privacy / Licenses screen.
+
+---
+
 ## License texts
 
 - GNU AGPL v3: [LICENSE](LICENSE)

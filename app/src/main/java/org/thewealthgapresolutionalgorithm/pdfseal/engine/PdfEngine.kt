@@ -38,9 +38,49 @@ class PdfEngine(context: Context) {
         withContext(mupdfDispatcher) {
             files.takePersistableRead(uri)
             val name = files.displayName(uri)
-            val bytes = files.readAllBytes(uri)
-            val doc = Document.openDocument(bytes, name)
-            val session = PdfDocumentSession(uri, name, doc)
+
+            // Stream into a private cache temp file; MuPDF opens it by path and
+            // memory-maps lazily — the whole PDF is never held in RAM.
+            val temp = files.copyToCacheTempFile(uri)
+
+            val doc = try {
+                Document.openDocument(temp.absolutePath)
+            } catch (e: Throwable) {
+                temp.delete()
+                throw java.io.IOException(
+                    "This PDF could not be opened. It may be corrupt, " +
+                        "truncated, or not a supported PDF.",
+                    e,
+                )
+            }
+
+            if (doc.needsPassword()) {
+                runCatching { doc.destroy() }
+                temp.delete()
+                throw java.io.IOException(
+                    "This PDF is password-protected. PDFSeal cannot open " +
+                        "encrypted PDFs yet — remove the password first.",
+                )
+            }
+
+            val pages = try {
+                doc.countPages()
+            } catch (e: Throwable) {
+                runCatching { doc.destroy() }
+                temp.delete()
+                throw java.io.IOException(
+                    "This PDF is unreadable or has no pages. It may be corrupt " +
+                        "or an unsupported format.",
+                    e,
+                )
+            }
+            if (pages <= 0) {
+                runCatching { doc.destroy() }
+                temp.delete()
+                throw java.io.IOException("This PDF has no pages.")
+            }
+
+            val session = PdfDocumentSession(uri, name, doc, temp)
             recentFiles.add(uri.toString(), name)
             session
         }

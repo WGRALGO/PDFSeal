@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -61,6 +63,7 @@ fun ViewerScreen(
     var showEditTextDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
     var showThumbs by remember { mutableStateOf(false) }
+    var showExportWarning by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -120,7 +123,7 @@ fun ViewerScreen(
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { showSignatureDialog = true },
-                ) { Text("Signature") }
+                ) { Text("Visual Signature") }
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { state.coverMode = !state.coverMode },
@@ -145,7 +148,7 @@ fun ViewerScreen(
                 }
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
-                    onClick = { exportLauncher.launch("PDFSeal-edited.pdf") },
+                    onClick = { showExportWarning = true },
                 ) { Text("Export") }
             }
         },
@@ -243,6 +246,33 @@ fun ViewerScreen(
             state = state,
             onRun = { scope.launch { state.runOcrCurrent() } },
             onDismiss = { showOcrPanel = false },
+        )
+    }
+
+    if (showExportWarning) {
+        AlertDialog(
+            onDismissRequest = { showExportWarning = false },
+            title = { Text("Export creates a flattened visual copy") },
+            text = {
+                Text(
+                    "Export creates a flattened visual PDF copy. Original PDF " +
+                        "objects such as forms, links, bookmarks, layers, " +
+                        "annotations, selectable text, accessibility structure, " +
+                        "metadata, or existing digital signatures may not be " +
+                        "preserved. The original file is not modified.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showExportWarning = false
+                    exportLauncher.launch("PDFSeal-edited.pdf")
+                }) { Text("Export anyway") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExportWarning = false }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 

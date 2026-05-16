@@ -38,7 +38,7 @@ fun SignatureDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add signature") },
+        title = { Text("Add Visual Signature") },
         text = {
             Column {
                 OutlinedTextField(
@@ -48,7 +48,8 @@ fun SignatureDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    "Visual typed-name signature — not a certified signature.",
+                    "Visual typed-name signature only. This is not a " +
+                        "certified cryptographic digital signature.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
                 )

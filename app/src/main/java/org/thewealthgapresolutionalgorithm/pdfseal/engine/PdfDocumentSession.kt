@@ -2,6 +2,7 @@ package org.thewealthgapresolutionalgorithm.pdfseal.engine
 
 import android.net.Uri
 import com.artifex.mupdf.fitz.Document
+import java.io.File
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrPageResult
 
@@ -16,6 +17,8 @@ class PdfDocumentSession internal constructor(
     val sourceUri: Uri,
     val displayName: String,
     internal val document: Document,
+    /** Private cache copy MuPDF opened by path; deleted on [close]. */
+    private val tempFile: File? = null,
 ) {
     val pageCount: Int = document.countPages()
 
@@ -94,5 +97,6 @@ class PdfDocumentSession internal constructor(
 
     internal fun close() {
         runCatching { document.destroy() }
+        runCatching { tempFile?.delete() }
     }
 }
