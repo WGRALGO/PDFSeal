@@ -1,14 +1,28 @@
-<div align="center">
-  <img src="docs/img/pdfseal-logo.png" alt="PDFSeal logo" width="200"/>
+# PDFSeal
 
-  # PDFSeal
+⚠️ Release withdrawn.
 
-  **Open-source offline Android PDF markup and flattened-export app — local, offline, no accounts, no ads, no tracking.**
+PDFSeal 1.0.0 has been withdrawn after real-device testing. The APK is not ready for public use and should not be downloaded, installed, shared, mirrored, or relied on.
 
-  [Source code](https://github.com/WGRALGO/PDFSeal) · License: **AGPL-3.0-or-later**
-</div>
+The source code remains available because PDFSeal is an open-source project under active review and repair.
+
+No stable public APK release is currently available.
+
+## Project Purpose
+
+PDFSeal exists because basic PDF editing should not be locked behind expensive subscriptions, cloud accounts, ads, trackers, or bloated software.
+
+The goal of this project is to build a free, open-source, offline PDF markup tool for serious people with limited resources, and for serious people who do not support corporate greed disguised as productivity software.
+
+PDFSeal is for students, workers, small nonprofits, independent creators, job seekers, organizers, small business owners, and anyone else who needs practical PDF tools without being pushed into another monthly payment.
+
+This project is not trying to clone Adobe Acrobat or pretend to do everything commercial PDF software does. The goal is simpler and more honest: create a useful, privacy-respecting, on-device PDF editor that real people can use, inspect, improve, and share.
+
+PDFSeal will remain open source so the code can be reviewed, repaired, improved, and trusted by the community.
 
 ---
+
+[Source code](https://github.com/WGRALGO/PDFSeal) · License: **AGPL-3.0-or-later**
 
 ## What PDFSeal is
 
@@ -59,10 +73,12 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Stable release: v1.0.0** — the first stable GitHub sideload release.
-> Open / view / Add Text / Visual Signature / Cover & Replace / OCR / Make
-> Editable Copy / page tools / flattened export work end-to-end. See
-> [docs/TESTING.md](docs/TESTING.md) for the release test matrix,
+> **Release withdrawn — v1.0.0 pulled.** PDFSeal is currently in pre-release
+> development. No stable APK is available yet. The v1.0.0 APK was withdrawn
+> after real-device testing showed it was not acceptable for public release.
+> See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for the withdrawal notice
+> and the device tests that must pass before any future release,
+> [docs/TESTING.md](docs/TESTING.md) for the test matrix,
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
 
@@ -141,9 +157,13 @@ the bundled notices can never drift from source.
 
 ## Sideloading
 
-1. Build (or download a signed release APK from
-   [Releases](https://github.com/WGRALGO/PDFSeal/releases)).
-2. Verify the SHA-256 checksum published with the release.
+> No stable public APK release is currently available. PDFSeal is in
+> pre-release development. The withdrawn v1.0.0 APK must **not** be downloaded,
+> installed, shared, or mirrored. The steps below apply only to an APK you
+> **build yourself from source** for development or testing.
+
+1. Build a debug or release APK from source (see *Building from source* above).
+2. Verify the SHA-256 checksum of the APK you built.
 3. On the tablet, enable "Install unknown apps" for your file manager.
 4. Open the APK and install.
 
@@ -159,21 +179,17 @@ The per-ABI ARM APKs are only produced when you build with `-PabiSplit`
 (see below); the default build is always the single universal APK so emulators
 keep working.
 
-**Build provenance.** Every published release APK is built from a clean checkout
-of its release tag and embeds the exact source commit at
-`META-INF/version-control-info.textproto`. The APK build revision, the release
-tag, and the public source therefore match. Verify before trusting an APK:
+**Build provenance.** No public release APK is currently distributed. Any APK
+you build from source embeds the exact source commit at
+`META-INF/version-control-info.textproto`, so the APK build revision and the
+source you built from match. Verify before trusting any APK:
 
 ```bash
-# revision must equal the release tag's commit on this repo
 unzip -p PDFSeal-<ver>-<abi>.apk META-INF/version-control-info.textproto
 ```
 
-The release notes for each version also list the exact build commit and the
-SHA-256 of every published APK.
-
-Release APKs are signed with a private key that is **never** committed to this
-repository. See [docs/RELEASING.md](docs/RELEASING.md).
+Signing keys are **never** committed to this repository.
+See [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Third-party software
 
