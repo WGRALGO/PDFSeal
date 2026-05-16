@@ -64,28 +64,4 @@ object HonestCopy {
 
     /** Shown after OCR completes. */
     const val OCR_REVIEW_WARNING = "Review OCR text before relying on it."
-
-    /** Credits / ownership line shown in About. */
-    const val CREDITS_BY =
-        "A free productivity tool by WGRALGO / The Wealth Gap Resolution " +
-            "Algorithm Inc."
-
-    /** No-data assurances shown in About / Credits. */
-    const val CREDITS_NO_DATA =
-        "No ads.\n" +
-            "No analytics.\n" +
-            "No trackers.\n" +
-            "No account.\n" +
-            "No cloud upload.\n" +
-            "No personal data collection."
-
-    /**
-     * Contributors block. WGRALGO owns and maintains PDFSeal; AI tools are
-     * credited for development assistance only and hold no ownership.
-     */
-    const val CONTRIBUTORS =
-        "Contributors:\n" +
-            "WGRALGO — Project owner, creator, maintainer, content " +
-            "direction, testing, and public-benefit mission.\n" +
-            "Claude — Assisted with building the Android APK implementation."
 }

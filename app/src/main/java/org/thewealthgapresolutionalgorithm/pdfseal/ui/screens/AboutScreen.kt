@@ -72,29 +72,6 @@ fun AboutScreen() {
 
         HorizontalDivider()
 
-        Text("Credits", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "PDFSeal v${BuildConfig.VERSION_NAME}",
-            style = MaterialTheme.typography.titleSmall,
-        )
-        Text(org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy.CREDITS_BY)
-        Text(
-            org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy
-                .CREDITS_NO_DATA,
-        )
-        Text(
-            org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy
-                .CONTRIBUTORS,
-        )
-        Text(
-            "Owned and maintained by WGRALGO / The Wealth Gap Resolution " +
-                "Algorithm Inc. AI tools (Claude) assisted with development " +
-                "only and hold no ownership.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-
-        HorizontalDivider()
-
         Text("What PDFSeal is", style = MaterialTheme.typography.titleMedium)
         Text(org.thewealthgapresolutionalgorithm.pdfseal.ui.HonestCopy.ONE_LINER)
         Text(
