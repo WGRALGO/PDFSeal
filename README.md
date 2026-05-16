@@ -265,7 +265,7 @@ sha256sum original.pdf
 | 11 | Pages → delete a page → Export | Page absent; remaining pages in order |
 | 12 | Pages → reorder (↑/↓) → Export | Pages exported in the new order |
 | 13 | After every export: re-check `sha256sum original.pdf` | **Unchanged** — original never overwritten |
-| 14 | Install the signed release APK by sideloading | Installs on Android 7.0+ |
+| 14 | Install a self-built APK by sideloading | Installs on Android 7.0+ |
 | 15 | Install a higher-`versionCode` APK over it (same key) | Updates **without uninstall**, data kept |
 | 16 | Confirm no secrets in the repo | `git log -p \| grep -iE 'PRIVATE KEY\|storePassword\|keyPassword'` → none; `*.jks`/`key.properties` not tracked |
 
