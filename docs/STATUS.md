@@ -7,6 +7,16 @@ provenance).
 
 _Last updated: 2026-05-16 — current `versionName` 1.0.0, `versionCode` 10._
 
+## Ownership
+
+Owned and maintained by **WGRALGO / The Wealth Gap Resolution Algorithm Inc.**
+Copyright © 2026 WGRALGO / The Wealth Gap Resolution Algorithm Inc.;
+AGPL-3.0-or-later. Credits and ownership terms are in
+[CONTRIBUTORS.md](../CONTRIBUTORS.md): WGRALGO is owner/creator/maintainer;
+AI tools (Claude) are credited for development assistance only and hold no
+ownership. `NOTICE` and the README License section carry the same copyright
+line. There is intentionally **no in-app Credits screen**.
+
 ## Released
 
 - **GitHub Release v1.0.0** — first stable GitHub sideload release
