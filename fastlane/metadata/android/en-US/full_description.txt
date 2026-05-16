@@ -1,0 +1,29 @@
+PDFSeal is a fully open-source Android PDF editor. Everything runs on-device.
+There is no cloud upload, no server processing, no account, no analytics, no
+ads, no trackers, and no Google Play Services.
+
+Features:
+
+* Open local PDFs via the Storage Access Framework; recent files list
+* View with pinch zoom, pan, page navigation and a thumbnail navigator
+* Add Text: place, move, edit and delete text boxes
+* Typed-name signature in three open-font styles, flattened on export
+* Cover &amp; Replace: visually cover an area and put new text on top
+* Offline OCR (Tesseract, English) of the current page
+* Make Editable Copy: OCR a page into editable text boxes
+* Page tools: rotate, delete and reorder pages; split by deleting pages
+* Export a flattened copy — the original file is never overwritten
+
+Honest about limits:
+
+* Cover &amp; Replace is VISUAL only. It is NOT secure redaction; covered
+  content may still exist in the exported file. Do not use it to remove
+  sensitive data.
+* OCR can make mistakes. Always review recognised text before relying on it.
+* Make Editable Copy is OCR-based reconstruction, not native PDF text editing.
+* The exported copy is rasterised, so its text is not selectable. True
+  annotation-level flattening and cross-file merge are planned, not yet done.
+
+PDFSeal uses MuPDF (AGPL-3.0) and Tesseract (Apache-2.0) and is distributed
+under the GNU Affero General Public License v3.0 or later. Source code:
+https://github.com/WGRALGO/PDFSeal

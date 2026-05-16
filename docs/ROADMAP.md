@@ -49,7 +49,9 @@ open → edit → export → reopen in another viewer, with the original unchang
 - PDF forms (if feasible)
 - **True secure redaction** (actual content removal — distinct from Cover &
   Replace, which is visual only)
-- F-Droid readiness
+- F-Droid: metadata in place (see [FDROID.md](FDROID.md)); official-repo
+  inclusion blocked only by needing source-built MuPDF/Tesseract (documented,
+  not a licensing issue)
 
 ## Known constraints / open risks
 - Workspace is on an exFAT external disk — Gradle cache kept on internal disk

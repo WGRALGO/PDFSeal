@@ -1,0 +1,3 @@
+v0.4.0: page tools — rotate, delete, reorder and split (via export plan).
+Builds on add-text, typed signature, Cover & Replace, offline OCR and
+Make Editable Copy. Local/offline; exported copy never overwrites the original.

@@ -1,0 +1,2 @@
+Page thumbnail navigator: tap a thumbnail to jump to that page.
+(All features from v0.4.0 retained. Local/offline, no ads/cloud/login.)
