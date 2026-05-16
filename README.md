@@ -59,7 +59,7 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Working build (v0.5.1).** Open / view / Add Text / Visual Signature /
+> **Working build: v0.5.1.** Open / view / Add Text / Visual Signature /
 > Cover & Replace / OCR / Make Editable Copy / page tools / flattened export
 > work end-to-end. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
