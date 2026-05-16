@@ -229,6 +229,15 @@ class PdfViewerState(private val engine: PdfEngine) {
         refreshOverlay()
     }
 
+    suspend fun thumbnail(pageIndex: Int): android.graphics.Bitmap? {
+        val s = session ?: return null
+        return try {
+            engine.renderThumbnail(s, pageIndex, maxEdgePx = 220)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     // ---- Page tools (export plan; viewer navigation stays on source pages) ----
 
     fun exportPlan(): List<Pair<Int, Int>> {

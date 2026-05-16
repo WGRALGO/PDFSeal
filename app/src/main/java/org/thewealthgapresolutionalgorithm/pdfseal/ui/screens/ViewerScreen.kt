@@ -44,6 +44,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.OcrPanel
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.ThumbnailsDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.TextToolDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +60,7 @@ fun ViewerScreen(
     var showOcrPanel by remember { mutableStateOf(false) }
     var showEditTextDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
+    var showThumbs by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -107,6 +109,10 @@ fun ViewerScreen(
                     enabled = state.pageIndex < state.pageCount - 1 && !state.busy,
                     onClick = { scope.launch { state.goTo(state.pageIndex + 1) } },
                 ) { Text("Next") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { showThumbs = true },
+                ) { Text("Thumbs") }
                 Button(
                     enabled = !state.busy,
                     onClick = { showTextDialog = true },
@@ -226,6 +232,10 @@ fun ViewerScreen(
 
     if (showPagesDialog) {
         PagesDialog(state = state, onDismiss = { showPagesDialog = false })
+    }
+
+    if (showThumbs) {
+        ThumbnailsDialog(state = state, onDismiss = { showThumbs = false })
     }
 
     if (showOcrPanel) {

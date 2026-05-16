@@ -24,7 +24,7 @@ android {
         applicationId = "org.thewealthgapresolutionalgorithm.pdfseal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
+        versionCode = 7
         versionName = "0.4.0"
         vectorDrawables { useSupportLibrary = true }
 
