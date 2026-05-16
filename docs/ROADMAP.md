@@ -25,7 +25,7 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [x] Bundle `eng.traineddata`; offline Tesseract integration
 - [x] OCR current page; show recognised text; store per-page result
 - [x] Map OCR boxes to PDF coordinates (EditableCopyBuilder)
-- [ ] Basic Make Editable Copy
+- [x] Basic Make Editable Copy
 
 ## v0.4.0 — Better editable copy
 - [ ] Improved OCR editable overlays
