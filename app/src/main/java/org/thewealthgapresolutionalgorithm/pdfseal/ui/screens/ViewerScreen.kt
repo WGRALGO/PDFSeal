@@ -38,6 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.CoverDrawLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
@@ -72,10 +73,11 @@ fun ViewerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (state.pageCount > 0) {
-                            "Page ${state.pageIndex + 1} / ${state.pageCount}"
-                        } else {
-                            "PDFSeal"
+                        when {
+                            state.coverMode -> "Drag to cover an area"
+                            state.pageCount > 0 ->
+                                "Page ${state.pageIndex + 1} / ${state.pageCount}"
+                            else -> "PDFSeal"
                         },
                     )
                 },
@@ -108,6 +110,10 @@ fun ViewerScreen(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { showSignatureDialog = true },
                 ) { Text("Signature") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { state.coverMode = !state.coverMode },
+                ) { Text(if (state.coverMode) "Cover…" else "Cover") }
                 if (state.selectedId != null) {
                     Button(onClick = { state.deleteSelected() }) { Text("Delete") }
                 }
@@ -158,6 +164,12 @@ fun ViewerScreen(
                         contentScalePxPerPt = state.renderScale,
                         densityPxPerDp = density,
                     )
+                    if (state.coverMode) {
+                        CoverDrawLayer(
+                            state = state,
+                            contentScalePxPerPt = state.renderScale,
+                        )
+                    }
                 }
             } else {
                 Text("Loading…", style = MaterialTheme.typography.bodyLarge)

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
 
@@ -36,10 +37,17 @@ fun EditObjectsLayer(
         state.overlay.forEach { obj ->
             val r = obj.rectPt
             val isSel = obj.id == state.selectedId
+            val isCover = obj is CoverReplaceObject
             val label = when (obj) {
                 is TextEditObject -> obj.text.ifEmpty { "text" }
                 is SignatureEditObject -> obj.typedName.ifEmpty { "signature" }
+                is CoverReplaceObject -> ""
                 else -> "object"
+            }
+            val fill = when {
+                obj is CoverReplaceObject -> Color(obj.fillArgb)
+                isSel -> Color(0x223366FF)
+                else -> Color.Transparent
             }
             Box(
                 modifier = Modifier
@@ -48,9 +56,7 @@ fun EditObjectsLayer(
                         width = (r.right - r.left).pt2dp(),
                         height = (r.bottom - r.top).pt2dp(),
                     )
-                    .background(
-                        if (isSel) Color(0x223366FF) else Color.Transparent,
-                    )
+                    .background(fill)
                     .border(
                         width = if (isSel) 2.dp else 1.dp,
                         color = if (isSel) {
@@ -59,23 +65,25 @@ fun EditObjectsLayer(
                             Color(0x55888888)
                         },
                     )
-                    .pointerInput(obj.id, contentScalePxPerPt, state.zoom) {
+                    .pointerInput(obj.id, contentScalePxPerPt) {
                         detectDragGestures(
                             onDragStart = { state.selectedId = obj.id },
                         ) { change, drag ->
                             change.consume()
-                            // screen px -> content px (/zoom) -> pt (/scale)
-                            val dxPt = drag.x / state.zoom / contentScalePxPerPt
-                            val dyPt = drag.y / state.zoom / contentScalePxPerPt
+                            // pointer px in content space -> pt (/renderScale)
+                            val dxPt = drag.x / contentScalePxPerPt
+                            val dyPt = drag.y / contentScalePxPerPt
                             state.moveSelectedByPdf(dxPt, dyPt)
                         }
                     },
             ) {
-                Text(
-                    text = label,
-                    color = Color(0xFF111111),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                if (label.isNotEmpty()) {
+                    Text(
+                        text = label,
+                        color = Color(0xFF111111),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         }
     }

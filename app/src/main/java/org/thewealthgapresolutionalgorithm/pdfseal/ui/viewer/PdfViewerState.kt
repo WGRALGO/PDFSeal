@@ -10,6 +10,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfCoordinateMapper
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
@@ -38,6 +39,7 @@ class PdfViewerState(private val engine: PdfEngine) {
     var panY by mutableStateOf(0f)
 
     var selectedId by mutableStateOf<String?>(null)
+    var coverMode by mutableStateOf(false)
     var busy by mutableStateOf(false)
         private set
     var lastMessage by mutableStateOf<String?>(null)
@@ -133,6 +135,22 @@ class PdfViewerState(private val engine: PdfEngine) {
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
+    }
+
+    /** Cover & Replace — visual cover only, NOT secure redaction. */
+    fun addCover(rectPt: PdfRectF) {
+        val s = session ?: return
+        val n = rectPt.normalized()
+        if (n.width < 2f || n.height < 2f) return
+        val obj = CoverReplaceObject(
+            pageIndex = pageIndex,
+            rectPt = n,
+            zOrder = -1, // under any replacement text added on top
+        )
+        s.addEdit(obj)
+        refreshOverlay()
+        selectedId = obj.id
+        coverMode = false
     }
 
     fun moveSelectedByPdf(dxPt: Float, dyPt: Float) {
