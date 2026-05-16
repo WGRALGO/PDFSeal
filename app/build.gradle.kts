@@ -24,8 +24,8 @@ android {
         applicationId = "org.thewealthgapresolutionalgorithm.pdfseal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "0.5.0"
+        versionCode = 9
+        versionName = "0.5.1"
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField(
@@ -117,7 +117,20 @@ val bundleLicenses = tasks.register<Copy>("bundleThirdPartyLicenses") {
     from(rootProject.file("THIRD_PARTY_LICENSES.md"))
     into(layout.projectDirectory.dir("src/main/assets"))
 }
-tasks.named("preBuild") { dependsOn(bundleLicenses) }
+
+// Bundle the FULL AGPL-3.0 license text from the repo-root LICENSE into the
+// APK at assets/licenses/AGPL-3.0.txt (single source of truth — the bundled
+// AGPL text cannot drift from the one that governs the source). The Apache-2.0,
+// Leptonica BSD-2-Clause and SIL OFL 1.1 full texts are static files committed
+// directly under src/main/assets/licenses and src/main/assets/fonts_licenses.
+val bundleAgplText = tasks.register<Copy>("bundleAgplLicenseText") {
+    from(rootProject.file("LICENSE")) { rename { "AGPL-3.0.txt" } }
+    into(layout.projectDirectory.dir("src/main/assets/licenses"))
+}
+tasks.named("preBuild") {
+    dependsOn(bundleLicenses)
+    dependsOn(bundleAgplText)
+}
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.09.03")

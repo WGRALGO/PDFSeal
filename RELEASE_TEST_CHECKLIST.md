@@ -48,9 +48,14 @@ Device: ______________________  Android: ______  APK: PDFSeal-________.apk
 - [ ] Airplane mode: full open → edit → OCR → export cycle works offline
 - [ ] About / Privacy / Licenses screen opens from Home
 - [ ] About screen shows app version + build number
-- [ ] About screen shows the source-code URL line
+- [ ] About screen shows the source-code URL line — NO "TODO" wording anywhere
+- [ ] About screen states full license texts are bundled + AGPL source-availability
 - [ ] About screen displays the bundled THIRD_PARTY_LICENSES.md notices (not blank / not "could not be read")
 - [ ] `unzip -l app.apk | grep THIRD_PARTY_LICENSES` shows it under `assets/`
+- [ ] `unzip -l app.apk | grep -i 'assets/licenses/'` shows `AGPL-3.0.txt`, `Apache-2.0.txt`, `Leptonica-BSD-2-Clause.txt`
+- [ ] `unzip -l app.apk | grep -i 'assets/fonts_licenses/'` shows the 3 OFL files
+- [ ] `unzip -p app.apk assets/licenses/AGPL-3.0.txt | head` shows real AGPL text (not empty / not a stub)
+- [ ] THIRD_PARTY_LICENSES.md / About contain NO broken `LICENSE` link and NO "TODO" source URL
 - [ ] Android backup disabled: manifest `allowBackup=false`; `adb shell bmgr` shows nothing useful to back up
 - [ ] No temp files left in app cache after closing a document (cache/pdfseal_open empties)
 

@@ -39,6 +39,9 @@ class PdfEngine(context: Context) {
             files.takePersistableRead(uri)
             val name = files.displayName(uri)
 
+            // Clear temp PDFs orphaned by a previous crash/kill before opening.
+            files.purgeStaleTempFiles()
+
             // Stream into a private cache temp file; MuPDF opens it by path and
             // memory-maps lazily — the whole PDF is never held in RAM.
             val temp = files.copyToCacheTempFile(uri)

@@ -55,9 +55,18 @@ fun AboutScreen() {
         Text("License: AGPL-3.0-or-later")
         Text("Source code: ${BuildConfig.SOURCE_URL}")
         Text(
-            "(TODO: confirm the public repository URL above before any public " +
-                "release. PDFSeal links AGPL MuPDF, so it is NOT closed source — " +
-                "the full source must be provided to anyone who gets the app.)",
+            "PDFSeal links AGPL-licensed MuPDF, so it is NOT closed source. " +
+                "When this app is distributed publicly, the complete " +
+                "corresponding source code for this build stays publicly " +
+                "available at the URL above (AGPL-3.0 requirement).",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            "Full license texts are bundled inside this app: AGPL-3.0, " +
+                "Apache-2.0 and the Leptonica BSD-2-Clause text under " +
+                "assets/licenses/, and the SIL OFL 1.1 font licenses under " +
+                "assets/fonts_licenses/. The notices below come from the " +
+                "bundled THIRD_PARTY_LICENSES.md.",
             style = MaterialTheme.typography.bodySmall,
         )
 

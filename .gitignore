@@ -42,3 +42,7 @@ google-services.json
 # Build-copied from repo-root THIRD_PARTY_LICENSES.md by the
 # bundleThirdPartyLicenses Gradle task — regenerated every build.
 /app/src/main/assets/THIRD_PARTY_LICENSES.md
+# Build-copied from repo-root LICENSE by the bundleAgplLicenseText Gradle
+# task — regenerated every build. The other full license texts under
+# assets/licenses/ and assets/fonts_licenses/ ARE committed (static).
+/app/src/main/assets/licenses/AGPL-3.0.txt

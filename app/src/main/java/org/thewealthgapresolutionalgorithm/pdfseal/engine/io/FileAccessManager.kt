@@ -60,6 +60,20 @@ class FileAccessManager(private val context: Context) {
      * PDFs no longer have to fit in RAM. Caller owns the returned file and must
      * delete it (see PdfDocumentSession.close()).
      */
+    /**
+     * Best-effort sweep of temp PDFs left behind by a previous crash/kill (the
+     * normal path deletes them in [PdfDocumentSession.close]). Only files older
+     * than [maxAgeMs] are removed so a concurrently-open document is never
+     * pulled out from under MuPDF.
+     */
+    fun purgeStaleTempFiles(maxAgeMs: Long = 60 * 60 * 1000L) {
+        val dir = File(context.cacheDir, "pdfseal_open")
+        val cutoff = System.currentTimeMillis() - maxAgeMs
+        dir.listFiles()?.forEach { f ->
+            if (f.isFile && f.lastModified() < cutoff) runCatching { f.delete() }
+        }
+    }
+
     fun copyToCacheTempFile(uri: Uri): File {
         val dir = File(context.cacheDir, "pdfseal_open").apply { mkdirs() }
         val temp = File.createTempFile("doc_", ".pdf", dir)

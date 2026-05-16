@@ -119,6 +119,18 @@ the bundled notices can never drift from source.
 3. On the tablet, enable "Install unknown apps" for your file manager.
 4. Open the APK and install.
 
+**Which APK do I use?**
+
+| Build | File | Use it for |
+|-------|------|------------|
+| Universal (default) | `PDFSeal-<ver>-universal.apk` | Anything — real ARM tablets/phones **and** x86/x86_64 emulators. Largest file (all ABIs). |
+| ARM 64-bit | `PDFSeal-<ver>-arm64-v8a.apk` | **Recommended for sideloading onto a real modern Android tablet/phone** (almost all devices since ~2017). Smallest. |
+| ARM 32-bit | `PDFSeal-<ver>-armeabi-v7a.apk` | Older 32-bit-only ARM devices. |
+
+The per-ABI ARM APKs are only produced when you build with `-PabiSplit`
+(see below); the default build is always the single universal APK so emulators
+keep working.
+
 Release APKs are signed with a private key that is **never** committed to this
 repository. See [docs/RELEASING.md](docs/RELEASING.md).
 
@@ -140,7 +152,26 @@ Key dependencies:
 | [Tesseract `eng` traineddata](https://github.com/tesseract-ocr/tessdata_fast) | OCR language data | Apache-2.0 |
 
 Because PDFSeal links MuPDF, the entire project is distributed under the
-**GNU Affero General Public License v3.0 or later**.
+**GNU Affero General Public License v3.0 or later**. When PDFSeal is
+distributed publicly, the complete corresponding source code for that build
+must remain publicly available at
+[https://github.com/WGRALGO/PDFSeal](https://github.com/WGRALGO/PDFSeal)
+(or another clearly stated public location) — this is a hard AGPL-3.0
+obligation.
+
+**Full license texts are packaged inside every APK** (no source tree needed
+to read them):
+
+| License | Path inside the APK |
+|---------|---------------------|
+| GNU AGPL-3.0 | `assets/licenses/AGPL-3.0.txt` |
+| Apache-2.0 | `assets/licenses/Apache-2.0.txt` |
+| Leptonica BSD-2-Clause | `assets/licenses/Leptonica-BSD-2-Clause.txt` |
+| SIL OFL 1.1 (fonts) | `assets/fonts_licenses/{GreatVibes,Pacifico,PinyonScript}-OFL.txt` |
+| Notice summary | `assets/THIRD_PARTY_LICENSES.md` |
+
+The same notices and source URL are shown in-app on the
+**About / Privacy / Licenses** screen.
 
 ## Testing
 
