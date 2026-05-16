@@ -259,7 +259,10 @@ sha256sum original.pdf
 
 ## License
 
-Copyright (C) 2026 PDFSeal contributors.
+Copyright (C) 2026 WGRALGO / The Wealth Gap Resolution Algorithm Inc.
+
+Owned and maintained by WGRALGO. See [CONTRIBUTORS.md](CONTRIBUTORS.md). AI
+tools (Claude) assisted with development only and hold no ownership.
 
 This program is free software: you can redistribute it and/or modify it under the
 terms of the GNU Affero General Public License as published by the Free Software
