@@ -33,12 +33,14 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [ ] Improved export fidelity
 
 ## v1.0.0 — Stable release
-- [ ] Stable open / view / edit / export
-- [ ] Typed signatures
-- [ ] OCR editable copy
-- [ ] Page tools: rotate, delete, reorder, merge, split (where feasible)
-- [ ] About screen with signing-cert SHA-256
+- [x] Stable open / view / edit / export
+- [x] Typed signatures
+- [x] OCR editable copy
+- [x] Page tools: rotate, delete, reorder, split (cross-file merge deferred)
+- [x] About screen with signing-cert SHA-256
 - [ ] Signed APK on GitHub Releases + checksum + release docs
+- [ ] On-device verification pass (maintainer tablet)
+- [ ] Page thumbnails (deferred from v0.2.0)
 
 ## Future (not promised, not faked)
 - Stronger layout reconstruction; better font matching
