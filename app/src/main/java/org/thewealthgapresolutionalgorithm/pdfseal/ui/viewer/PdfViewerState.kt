@@ -11,6 +11,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
 
 /**
@@ -105,6 +106,29 @@ class PdfViewerState(private val engine: PdfEngine) {
             ),
             text = text,
             fontSizePt = fontSizePt,
+        )
+        s.addEdit(obj)
+        refreshOverlay()
+        selectedId = obj.id
+    }
+
+    fun addSignatureCentered(
+        name: String,
+        style: SignatureEditObject.SignatureStyle,
+    ) {
+        val s = session ?: return
+        val w = pageSizePt.width
+        val h = pageSizePt.height
+        val boxW = (w * 0.4f).coerceAtLeast(120f)
+        val boxH = (boxW * 0.28f).coerceAtLeast(28f)
+        val obj = SignatureEditObject(
+            pageIndex = pageIndex,
+            rectPt = PdfRectF(
+                (w - boxW) / 2f, (h - boxH) / 2f,
+                (w + boxW) / 2f, (h + boxH) / 2f,
+            ),
+            typedName = name,
+            style = style,
         )
         s.addEdit(obj)
         refreshOverlay()

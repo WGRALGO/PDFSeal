@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.TextToolDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +52,7 @@ fun ViewerScreen(
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var showTextDialog by remember { mutableStateOf(false) }
+    var showSignatureDialog by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -102,6 +104,10 @@ fun ViewerScreen(
                     enabled = !state.busy,
                     onClick = { showTextDialog = true },
                 ) { Text("Add Text") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { showSignatureDialog = true },
+                ) { Text("Signature") }
                 if (state.selectedId != null) {
                     Button(onClick = { state.deleteSelected() }) { Text("Delete") }
                 }
@@ -165,6 +171,16 @@ fun ViewerScreen(
             onConfirm = { text, sizePt ->
                 state.addTextCentered(text, sizePt)
                 showTextDialog = false
+            },
+        )
+    }
+
+    if (showSignatureDialog) {
+        SignatureDialog(
+            onDismiss = { showSignatureDialog = false },
+            onConfirm = { name, style ->
+                state.addSignatureCentered(name, style)
+                showSignatureDialog = false
             },
         )
     }

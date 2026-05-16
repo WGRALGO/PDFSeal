@@ -65,19 +65,22 @@ PDFSeal bundles the following open fonts for the typed-signature feature. Each i
 licensed under the **SIL Open Font License, Version 1.1**, which permits embedding
 and redistribution within an open-source application.
 
-| Font | Style role | Copyright |
-|------|-----------|-----------|
-| **Great Vibes** | Elegant cursive | Copyright © 2012 TipoType. |
-| **Caveat** | Bold handwritten | Copyright © 2015 The Caveat Project Authors (Impallari Type). |
-| **Pinyon Script** | Clean formal script | Copyright © 2011 Nicole Fally. |
+| Font (file) | Signature style | Copyright |
+|-------------|-----------------|-----------|
+| **Great Vibes** (`res/font/great_vibes.ttf`) | Elegant cursive (`ELEGANT_CURSIVE`) | Copyright © 2015 The Great Vibes Pro Project Authors. |
+| **Pacifico** (`res/font/pacifico.ttf`) | Bold handwritten (`BOLD_HANDWRITTEN`) | Copyright © 2018 The Pacifico Project Authors. |
+| **Pinyon Script** (`res/font/pinyon_script.ttf`) | Clean formal script (`CLEAN_FORMAL_SCRIPT`) | Copyright © 2024 The Pinyon Project Authors. |
 
-Font files and the OFL text will be placed under `app/src/main/res/font/` with the
-OFL license copied alongside them when the signature feature is implemented
-(Phase 5). No commercial or restrictively-licensed fonts are used.
+All three are under the **SIL Open Font License v1.1**. The full per-font OFL
+text is bundled in the APK at `assets/fonts_licenses/`:
 
-> **Note:** Final embedded font choices are confirmed at implementation time.
-> If a chosen font's license is not OFL/embeddable, it will be replaced with an
-> OFL alternative and this table updated — not silently substituted.
+- `GreatVibes-OFL.txt`
+- `Pacifico-OFL.txt`
+- `PinyonScript-OFL.txt`
+
+No commercial or restrictively-licensed fonts are used. (Permanent Marker was
+considered for the bold style but is Apache-2.0, not OFL; Pacifico — OFL — was
+chosen instead to keep the font licensing uniform.)
 
 ## 8. PDFSeal logo
 
