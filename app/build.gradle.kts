@@ -24,8 +24,8 @@ android {
         applicationId = "org.thewealthgapresolutionalgorithm.pdfseal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField(
@@ -79,6 +79,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // Tesseract memory-maps the trained data; it must NOT be compressed in the APK.
+    androidResources {
+        noCompress += "traineddata"
     }
 
     packaging {

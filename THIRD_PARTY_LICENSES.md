@@ -35,9 +35,12 @@ binary-only app logic is permitted in this project.
 - **Copyright:** © Google Inc. and the Tesseract contributors.
 - **License:** Apache License, Version 2.0.
 - **Project:** https://github.com/tesseract-ocr/tesseract
-- **Trained data:** `eng.traineddata` (and any future language packs) are
-  distributed by the tessdata project under the Apache License, Version 2.0.
-  https://github.com/tesseract-ocr/tessdata
+- **Trained data:** `eng.traineddata` is bundled at
+  `app/src/main/assets/tessdata/eng.traineddata` (~4 MB), taken from the
+  **tessdata_fast** project, Apache License 2.0.
+  https://github.com/tesseract-ocr/tessdata_fast — copied to app filesDir on
+  first OCR run and memory-mapped (kept uncompressed in the APK via
+  `androidResources.noCompress`).
 
 ## 4. Leptonica
 

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.CoverDrawLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.OcrPanel
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.TextToolDialog
@@ -54,6 +55,7 @@ fun ViewerScreen(
     val snackbar = remember { SnackbarHostState() }
     var showTextDialog by remember { mutableStateOf(false) }
     var showSignatureDialog by remember { mutableStateOf(false) }
+    var showOcrPanel by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -114,6 +116,10 @@ fun ViewerScreen(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { state.coverMode = !state.coverMode },
                 ) { Text(if (state.coverMode) "Cover…" else "Cover") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { showOcrPanel = true },
+                ) { Text("OCR") }
                 if (state.selectedId != null) {
                     Button(onClick = { state.deleteSelected() }) { Text("Delete") }
                 }
@@ -184,6 +190,14 @@ fun ViewerScreen(
                 state.addTextCentered(text, sizePt)
                 showTextDialog = false
             },
+        )
+    }
+
+    if (showOcrPanel) {
+        OcrPanel(
+            state = state,
+            onRun = { scope.launch { state.runOcrCurrent() } },
+            onDismiss = { showOcrPanel = false },
         )
     }
 

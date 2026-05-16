@@ -14,6 +14,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObjec
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrPageResult
 
 /**
  * UI-side holder. Talks ONLY to [PdfEngine]; never imports MuPDF. The page is
@@ -40,6 +41,7 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     var selectedId by mutableStateOf<String?>(null)
     var coverMode by mutableStateOf(false)
+    var lastOcr by mutableStateOf<OcrPageResult?>(null)
     var busy by mutableStateOf(false)
         private set
     var lastMessage by mutableStateOf<String?>(null)
@@ -172,6 +174,18 @@ class PdfViewerState(private val engine: PdfEngine) {
         session?.removeEdit(obj)
         selectedId = null
         refreshOverlay()
+    }
+
+    suspend fun runOcrCurrent() {
+        val s = session ?: return
+        busy = true
+        try {
+            lastOcr = engine.ocrPage(s, pageIndex)
+        } catch (e: Exception) {
+            lastMessage = "OCR failed: ${e.message}"
+        } finally {
+            busy = false
+        }
     }
 
     suspend fun export(targetUri: Uri) {
