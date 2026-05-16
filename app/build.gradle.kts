@@ -27,6 +27,18 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         vectorDrawables { useSupportLibrary = true }
+
+        buildConfigField(
+            "String",
+            "SIGNING_CERT_SHA256",
+            "\"F8:D7:4E:09:42:74:10:8F:B9:EB:A8:06:AE:61:0B:39:" +
+                "BA:E0:9F:39:F6:C9:F0:41:25:4E:38:03:56:13:7E:D5\"",
+        )
+        buildConfigField(
+            "String",
+            "SOURCE_URL",
+            "\"https://github.com/WGRALGO/PDFSeal\"",
+        )
     }
 
     signingConfigs {
@@ -64,7 +76,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     packaging {
         resources {

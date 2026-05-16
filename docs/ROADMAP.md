@@ -7,10 +7,10 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [x] Repo foundation: README, LICENSE, NOTICE, THIRD_PARTY_LICENSES, SECURITY
 - [x] docs/: BUILDING, RELEASING, ARCHITECTURE, ROADMAP
 - [x] `.gitignore` hardened; `key.properties.example`
-- [ ] Android Gradle + Kotlin + Compose project skeleton
-- [ ] Release signing config (reads gitignored `key.properties`)
-- [ ] App launcher icon from the PDFSeal logo
-- [ ] PDF engine skeleton (PdfEngine, Session, Renderer, CoordinateMapper,
+- [x] Android Gradle + Kotlin + Compose project skeleton
+- [x] Release signing config (reads gitignored `key.properties`)
+- [x] App launcher icon from the PDFSeal logo
+- [x] PDF engine skeleton (PdfEngine, Session, Renderer, CoordinateMapper,
       edit models, Exporter skeleton, OCR/IO interfaces)
 - [ ] Open PDF (SAF) → render → zoom/pan → Add Text → export edited copy
 - [ ] Reopen exported PDF elsewhere to confirm the edit
