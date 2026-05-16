@@ -67,7 +67,7 @@ signing config. If the file is absent, the release build falls back gracefully
 ## 4. Build the signed release APK
 
 ```bash
-export JAVA_HOME=/home/noneya/jdk-17.0.19+10
+export JAVA_HOME=/home/noneya/jdk-portable/jdk-17.0.19+10
 ./gradlew :app:assembleRelease
 ```
 

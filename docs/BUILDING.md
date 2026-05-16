@@ -15,11 +15,11 @@ as prebuilt artifacts.
 
 ### Reference local setup (maintainer machine)
 
-- JDK 17: `/home/noneya/jdk-17.0.19+10`
+- JDK 17: `/home/noneya/jdk-portable/jdk-17.0.19+10`
 - Android SDK: `/home/noneya/Android/Sdk`
 
 ```bash
-export JAVA_HOME=/home/noneya/jdk-17.0.19+10
+export JAVA_HOME=/home/noneya/jdk-portable/jdk-17.0.19+10
 export ANDROID_HOME=/home/noneya/Android/Sdk
 ```
 
@@ -106,7 +106,8 @@ because it is already present on the maintainer machine.
 |---------|-----|
 | `Unsupported class file major version` | Wrong JDK. Use JDK 17, set `JAVA_HOME`. |
 | `SDK location not found` | Create `local.properties` with `sdk.dir=...`. |
-| `Could not resolve com.artifex.mupdf:fitz` | Confirm `mavenCentral()` is in `settings.gradle.kts` repositories; check the artifact version in `app/build.gradle.kts`. |
+| `Could not resolve com.artifex.mupdf:fitz` | MuPDF is on the **Artifex maven** `https://maven.ghostscript.com`, not Maven Central. Confirm that repo + `https://jitpack.io` are in `settings.gradle.kts`. Current: `com.artifex.mupdf:fitz:1.27.1`. |
+| `Could not resolve cz.adaptech.tesseract4android` | Tesseract4Android is on **JitPack** (`https://jitpack.io`), not Maven Central. Current: `cz.adaptech.tesseract4android:tesseract4android:4.9.0`. |
 | Tesseract crashes / `eng.traineddata not found` | The trained data is copied from assets to `filesDir` on first OCR run. Confirm `app/src/main/assets/tessdata/eng.traineddata` exists in the build. |
 | `gradlew: Permission denied` (exFAT) | Run `sh ./gradlew ...` or set the executable bit; see exFAT section above. |
 | Gradle cache corruption on exFAT | Use `GRADLE_USER_HOME=/home/noneya/.gradle`. |
