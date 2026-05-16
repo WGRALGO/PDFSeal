@@ -32,15 +32,27 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [ ] OCR selected pages
 - [ ] Improved export fidelity
 
-## v1.0.0 — Stable release
+## v1.0.0 — Stable release ✅ DONE (2026-05-16)
+
+Tagged `v1.0.0` (commit `b952aa0`), **GitHub Release published**:
+<https://github.com/WGRALGO/PDFSeal/releases/tag/v1.0.0> — dual signed APKs
+(arm64-v8a + universal) + SHA-256, provenance-verified. See
+[RELEASING.md](RELEASING.md) and [TESTING.md](TESTING.md).
+
 - [x] Stable open / view / edit / export
 - [x] Typed signatures
 - [x] OCR editable copy
 - [x] Page tools: rotate, delete, reorder, split (cross-file merge deferred)
 - [x] About screen with signing-cert SHA-256
-- [x] Signed APK on GitHub Releases + checksum + release docs (v0.4.0)
-- [ ] On-device verification pass (maintainer tablet)
+- [x] Signed APKs on GitHub Releases + checksums + release docs (v1.0.0:
+      arm64-v8a + universal, `-PabiSplit`, embedded-commit == tag verified)
 - [x] Page thumbnails (tap-to-jump navigator)
+- [x] Honest UI/About/README + first-launch limits + export/tool warnings
+      (single source `HonestCopy`)
+- [x] Static release test matrix PASS ([TESTING.md](TESTING.md))
+- [ ] On-device verification pass — **maintainer follow-up** on physical
+      hardware (build env has no device/emulator); DEVICE rows in
+      [TESTING.md](TESTING.md). Any finding → 1.0.x patch.
 
 ## Future (not promised, not faked)
 - Stronger layout reconstruction; better font matching
