@@ -18,7 +18,7 @@ open → edit → export → reopen in another viewer, with the original unchang
 ## v0.2.0 — Signature, Cover & Replace, navigation
 - [x] Typed-name signature (3 OFL font styles), place/move, flatten on export
 - [x] Cover & Replace (visual cover + replacement text) — **not** redaction
-- [ ] Page thumbnails
+- [x] Page thumbnails (delivered in the v0.4.0 line)
 - [x] Recent files (persisted SAF permissions)
 
 ## v0.3.0 — OCR
@@ -38,9 +38,9 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [x] OCR editable copy
 - [x] Page tools: rotate, delete, reorder, split (cross-file merge deferred)
 - [x] About screen with signing-cert SHA-256
-- [ ] Signed APK on GitHub Releases + checksum + release docs
+- [x] Signed APK on GitHub Releases + checksum + release docs (v0.4.0)
 - [ ] On-device verification pass (maintainer tablet)
-- [ ] Page thumbnails (deferred from v0.2.0)
+- [x] Page thumbnails (tap-to-jump navigator)
 
 ## Future (not promised, not faked)
 - Stronger layout reconstruction; better font matching
