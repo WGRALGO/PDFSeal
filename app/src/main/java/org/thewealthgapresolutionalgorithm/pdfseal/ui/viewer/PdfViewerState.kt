@@ -43,6 +43,8 @@ class PdfViewerState(private val engine: PdfEngine) {
     var selectedId by mutableStateOf<String?>(null)
     var coverMode by mutableStateOf(false)
     var lastOcr by mutableStateOf<OcrPageResult?>(null)
+    var planVersion by mutableStateOf(0)
+        private set
     var busy by mutableStateOf(false)
         private set
     var lastMessage by mutableStateOf<String?>(null)
@@ -225,6 +227,30 @@ class PdfViewerState(private val engine: PdfEngine) {
         obj.fontSizePt = fontSizePt
         session?.hasUnsavedEdits = true
         refreshOverlay()
+    }
+
+    // ---- Page tools (export plan; viewer navigation stays on source pages) ----
+
+    fun exportPlan(): List<Pair<Int, Int>> {
+        planVersion // read for recomposition
+        val s = session ?: return emptyList()
+        return s.exportOrder.map { src -> src to (s.extraRotation[src] ?: 0) }
+    }
+
+    fun rotatePagePlan(srcIndex: Int) {
+        session?.rotatePage(srcIndex, 90); planVersion++
+    }
+
+    fun deletePagePlan(srcIndex: Int) {
+        session?.deletePageFromExport(srcIndex); planVersion++
+    }
+
+    fun movePagePlan(fromPos: Int, toPos: Int) {
+        session?.movePage(fromPos, toPos); planVersion++
+    }
+
+    fun resetPlan() {
+        session?.resetExportPlan(); planVersion++
     }
 
     suspend fun export(targetUri: Uri) {

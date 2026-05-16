@@ -30,6 +30,44 @@ class PdfDocumentSession internal constructor(
     var hasUnsavedEdits: Boolean = false
         internal set
 
+    /**
+     * Export plan — applied only at export time (the viewer still navigates the
+     * original pages). [exportOrder] is the ordered list of source page
+     * indices to write; deleting a page removes it here. [extraRotation] maps a
+     * source page index to an additional clockwise rotation in degrees
+     * (0/90/180/270) layered on top of the page's own /Rotate.
+     */
+    val exportOrder: MutableList<Int> = (0 until pageCount).toMutableList()
+    val extraRotation: MutableMap<Int, Int> = HashMap()
+
+    fun rotatePage(srcIndex: Int, deltaDeg: Int) {
+        val cur = extraRotation[srcIndex] ?: 0
+        extraRotation[srcIndex] = ((cur + deltaDeg) % 360 + 360) % 360
+        hasUnsavedEdits = true
+    }
+
+    fun deletePageFromExport(srcIndex: Int) {
+        if (exportOrder.size > 1) {
+            exportOrder.remove(srcIndex)
+            hasUnsavedEdits = true
+        }
+    }
+
+    fun movePage(fromPos: Int, toPos: Int) {
+        if (fromPos in exportOrder.indices && toPos in exportOrder.indices) {
+            val v = exportOrder.removeAt(fromPos)
+            exportOrder.add(toPos, v)
+            hasUnsavedEdits = true
+        }
+    }
+
+    fun resetExportPlan() {
+        exportOrder.clear()
+        exportOrder.addAll(0 until pageCount)
+        extraRotation.clear()
+        hasUnsavedEdits = true
+    }
+
     /** Page size in PDF points (after the page's own /Rotate). */
     fun pageSizePt(pageIndex: Int): PdfRectF = pageSizeCache.getOrPut(pageIndex) {
         val page = document.loadPage(pageIndex)

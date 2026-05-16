@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.CoverDrawLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.OcrPanel
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.TextToolDialog
@@ -57,6 +58,7 @@ fun ViewerScreen(
     var showSignatureDialog by remember { mutableStateOf(false) }
     var showOcrPanel by remember { mutableStateOf(false) }
     var showEditTextDialog by remember { mutableStateOf(false) }
+    var showPagesDialog by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -121,6 +123,10 @@ fun ViewerScreen(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { showOcrPanel = true },
                 ) { Text("OCR") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { showPagesDialog = true },
+                ) { Text("Pages") }
                 Button(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { scope.launch { state.makeEditableCopyCurrent() } },
@@ -216,6 +222,10 @@ fun ViewerScreen(
         } else {
             showEditTextDialog = false
         }
+    }
+
+    if (showPagesDialog) {
+        PagesDialog(state = state, onDismiss = { showPagesDialog = false })
     }
 
     if (showOcrPanel) {

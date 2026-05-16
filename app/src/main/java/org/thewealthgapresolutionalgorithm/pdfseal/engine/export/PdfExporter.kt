@@ -47,18 +47,31 @@ class PdfExporter(
         val out = PdfDocument()
         val renderScale = exportDpi / 72f
         try {
-            for (pageIndex in 0 until session.pageCount) {
-                val sizePt = session.pageSizePt(pageIndex)
+            // Honor the export plan: order, deletions, extra rotation.
+            val order = session.exportOrder.ifEmpty { (0 until session.pageCount).toList() }
+            order.forEachIndexed { outIdx, srcIndex ->
+                val sizePt = session.pageSizePt(srcIndex)
                 val wPt = sizePt.width.coerceAtLeast(1f)
                 val hPt = sizePt.height.coerceAtLeast(1f)
+                val rot = ((session.extraRotation[srcIndex] ?: 0) % 360 + 360) % 360
+                val swap = rot == 90 || rot == 270
+                val outW = if (swap) hPt else wPt
+                val outH = if (swap) wPt else hPt
 
                 val info = PdfDocument.PageInfo.Builder(
-                    Math.round(wPt), Math.round(hPt), pageIndex + 1,
+                    Math.round(outW), Math.round(outH), outIdx + 1,
                 ).create()
                 val outPage = out.startPage(info)
                 val canvas = outPage.canvas
 
-                val bmp = renderer.renderPage(session, pageIndex, renderScale)
+                canvas.save()
+                when (rot) {
+                    90 -> { canvas.translate(outW, 0f); canvas.rotate(90f) }
+                    180 -> { canvas.translate(outW, outH); canvas.rotate(180f) }
+                    270 -> { canvas.translate(0f, outH); canvas.rotate(270f) }
+                }
+
+                val bmp = renderer.renderPage(session, srcIndex, renderScale)
                 try {
                     canvas.drawBitmap(
                         bmp,
@@ -70,7 +83,7 @@ class PdfExporter(
                     bmp.recycle()
                 }
 
-                session.editsFor(pageIndex)
+                session.editsFor(srcIndex)
                     .sortedBy { it.zOrder }
                     .forEach { obj ->
                         when (obj) {
@@ -85,6 +98,7 @@ class PdfExporter(
                         }
                     }
 
+                canvas.restore()
                 out.finishPage(outPage)
             }
 
