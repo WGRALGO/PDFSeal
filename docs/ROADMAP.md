@@ -16,10 +16,10 @@ open → edit → export → reopen in another viewer, with the original unchang
 - [ ] Reopen exported PDF elsewhere to confirm the edit
 
 ## v0.2.0 — Signature, Cover & Replace, navigation
-- [ ] Typed-name signature (3 OFL font styles), place/move/resize/rotate, flatten
+- [x] Typed-name signature (3 OFL font styles), place/move, flatten on export
 - [ ] Cover & Replace (visual cover + replacement text) — **not** redaction
 - [ ] Page thumbnails
-- [ ] Recent files (persisted SAF permissions)
+- [x] Recent files (persisted SAF permissions)
 
 ## v0.3.0 — OCR
 - [ ] Bundle `eng.traineddata`; offline Tesseract integration
