@@ -109,10 +109,54 @@ Key dependencies:
 | [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) | OCR engine | Apache-2.0 |
 | AndroidX / Jetpack Compose | UI toolkit | Apache-2.0 |
 | Kotlin stdlib | Language runtime | Apache-2.0 |
-| Great Vibes / Caveat / Pinyon Script | Signature fonts | SIL OFL 1.1 |
+| Great Vibes / Pacifico / Pinyon Script | Signature fonts | SIL OFL 1.1 |
+| [Tesseract `eng` traineddata](https://github.com/tesseract-ocr/tessdata_fast) | OCR language data | Apache-2.0 |
 
 Because PDFSeal links MuPDF, the entire project is distributed under the
 **GNU Affero General Public License v3.0 or later**.
+
+## Testing
+
+PDFSeal has JVM unit tests for the coordinate mapper:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+The rest must be verified **on a real Android tablet** (sideload a debug or
+signed release APK). MuPDF/Tesseract are native — an emulator without the right
+ABI will not exercise them. Use two sample PDFs: one normal text PDF and one
+scanned (image-only) PDF.
+
+Before each test, note the original file's checksum so you can prove it is
+untouched:
+
+```bash
+sha256sum original.pdf
+```
+
+| # | Test | Expected |
+|---|------|----------|
+| 1 | Open a normal text PDF (Open PDF → SAF picker) | Renders; zoom/pan, Prev/Next, Thumbs work |
+| 2 | Open a scanned (image-only) PDF | Renders as images |
+| 3 | Add Text, type, drag to position, Export | SAF "create document" prompt; success snackbar |
+| 4 | Reopen the exported PDF in another viewer (Drive/Adobe) | Added text present at the right place |
+| 5 | Add Signature → type name → pick each of the 3 styles → place → Export | Signature flattened in each style |
+| 6 | Cover → drag a rectangle over text → Add Text on top → Export | Area visually covered; replacement text on top |
+| 7 | OCR a scanned page (OCR → Run OCR) | Recognised text + confidence shown; caveat visible |
+| 8 | Make Editable Copy on a scanned page | Editable text boxes created over recognised lines |
+| 9 | Edit an OCR text box (select → Edit), then Export | Corrected text appears in the exported copy |
+| 10 | Pages → rotate a page ⟳90 → Export | That page is rotated in the export |
+| 11 | Pages → delete a page → Export | Page absent; remaining pages in order |
+| 12 | Pages → reorder (↑/↓) → Export | Pages exported in the new order |
+| 13 | After every export: re-check `sha256sum original.pdf` | **Unchanged** — original never overwritten |
+| 14 | Install the signed release APK by sideloading | Installs on Android 7.0+ |
+| 15 | Install a higher-`versionCode` APK over it (same key) | Updates **without uninstall**, data kept |
+| 16 | Confirm no secrets in the repo | `git log -p \| grep -iE 'PRIVATE KEY\|storePassword\|keyPassword'` → none; `*.jks`/`key.properties` not tracked |
+
+> Honesty checks: Cover & Replace is visual only — do **not** rely on it to
+> remove sensitive data. OCR can be wrong — review before trusting it. The
+> exported copy is rasterised, so its text is not selectable.
 
 ## License
 
