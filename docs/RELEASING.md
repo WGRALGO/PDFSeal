@@ -64,31 +64,63 @@ keyPassword=<real key password>
 signing config. If the file is absent, the release build falls back gracefully
 (unsigned / debug) so CI and fresh clones still build.
 
-## 4. Build the signed release APK
+## 4. Build the signed release APKs (dual-APK flow)
+
+Since v1.0.0 a release ships **two** APKs, built with the `-PabiSplit` flag:
+
+| File | ABIs | For |
+|------|------|-----|
+| `PDFSeal-<ver>-arm64-v8a.apk` | `arm64-v8a` only | most modern phones/tablets (smallest) |
+| `PDFSeal-<ver>-universal.apk` | `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` | unsure / older / emulator / multi-ABI |
+
+> Provenance rule (mandatory): build from a **clean tree at the exact release
+> tag** so AGP embeds the right commit into the APK (see §6.5). Tag *before*
+> building: `HEAD` must equal the `vX.Y.Z` tag commit.
 
 ```bash
 export JAVA_HOME=/home/noneya/jdk-portable/jdk-17.0.19+10
-./gradlew :app:assembleRelease
+export GRADLE_USER_HOME=/home/noneya/.gradle   # exFAT workspace caveat
+
+# HEAD must already be the release commit AND be tagged.
+git status --porcelain   # must be empty
+git rev-parse HEAD        # must equal git rev-parse vX.Y.Z^{commit}
+
+sh ./gradlew --gradle-user-home /home/noneya/.gradle \
+  clean :app:assembleRelease -PabiSplit
 ```
 
-Output: `app/build/outputs/apk/release/app-release.apk`
+Outputs in `app/build/outputs/apk/release/`:
 
-Rename per the versioning rule (see below), e.g. `PDFSeal-0.1.0.apk`.
+- `app-arm64-v8a-release.apk`   → rename `PDFSeal-<ver>-arm64-v8a.apk`
+- `app-universal-release.apk`   → rename `PDFSeal-<ver>-universal.apk`
+- `app-armeabi-v7a-release.apk` → **not shipped** since v1.0.0 (universal covers it)
+
+```bash
+cd release
+R=../app/build/outputs/apk/release
+cp "$R/app-arm64-v8a-release.apk" PDFSeal-1.0.0-arm64-v8a.apk
+cp "$R/app-universal-release.apk" PDFSeal-1.0.0-universal.apk
+```
 
 ### Versioning rule (mandatory)
 
 Every rebuilt APK must bump **all three**: `versionCode`, `versionName`, and the
-distributed file name. Android may reject an install if `versionCode` did not
-increase. This matches the established workflow for other apps on this machine.
+distributed file names. Android rejects an install if `versionCode` did not
+increase. Both APKs in a release share the same `versionCode`/`versionName`.
 
 ## 5. Verify the signature and capture the fingerprint
 
+Verify **both** shipped APKs:
+
 ```bash
-$ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs \
-  app/build/outputs/apk/release/app-release.apk
+AS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
+for f in release/PDFSeal-1.0.0-arm64-v8a.apk release/PDFSeal-1.0.0-universal.apk; do
+  "${AS}apksigner" verify --print-certs "$f" | grep -i SHA-256
+done
 ```
 
-Record the **SHA-256** certificate fingerprint. Put it in:
+Both must report the same digest as the documented fingerprint below
+(`f8d74e09…356137ed5`). Record the **SHA-256** certificate fingerprint. Put it in:
 
 - the GitHub Release notes,
 - the in-app **About** screen (placeholder until first real release),
@@ -106,26 +138,68 @@ Signing certificate SHA-256 fingerprint (public — safe to publish):
 > (`/home/noneya/.pdfseal-keystore.txt`) are stored outside the repository and
 > must never be committed or shared.
 
-## 6. Compute the APK checksum
+## 6. Compute the APK checksums (one per shipped APK)
 
 ```bash
-sha256sum PDFSeal-0.1.0.apk > PDFSeal-0.1.0.apk.sha256
-cat PDFSeal-0.1.0.apk.sha256
+cd release
+sha256sum PDFSeal-1.0.0-arm64-v8a.apk > PDFSeal-1.0.0-arm64-v8a.apk.sha256
+sha256sum PDFSeal-1.0.0-universal.apk > PDFSeal-1.0.0-universal.apk.sha256
+sha256sum -c PDFSeal-1.0.0-arm64-v8a.apk.sha256 PDFSeal-1.0.0-universal.apk.sha256
 ```
+
+## 6.5. Verify build provenance (mandatory since v1.0.0)
+
+AGP embeds the build's git HEAD SHA into the APK at
+`META-INF/version-control-info.textproto`. It **must** equal the release tag
+commit, or the public source does not correspond to the binary (AGPL).
+
+```bash
+EXPECT=$(git rev-parse v1.0.0^{commit})
+for f in release/PDFSeal-1.0.0-arm64-v8a.apk release/PDFSeal-1.0.0-universal.apk; do
+  unzip -p "$f" META-INF/version-control-info.textproto | grep revision
+done
+echo "expected: $EXPECT"
+```
+
+Also confirm ABIs and version:
+
+```bash
+AS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
+unzip -l release/PDFSeal-1.0.0-arm64-v8a.apk | grep -oE 'lib/[^/]+' | sort -u  # arm64-v8a only
+unzip -l release/PDFSeal-1.0.0-universal.apk | grep -oE 'lib/[^/]+' | sort -u  # 4 ABIs
+"${AS}aapt" dump badging release/PDFSeal-1.0.0-arm64-v8a.apk | grep versionName
+```
+
+If the embedded revision is wrong, the APK was built from a dirty tree or
+pre-tag commit. Fix: ensure `HEAD == vX.Y.Z` and the tree is clean, then
+rebuild from §4 (`clean` is required).
 
 ## 7. Publish the GitHub Release
 
-1. Tag the commit: `git tag v0.1.0 && git push origin v0.1.0`
-2. Create the release at
-   <https://github.com/WGRALGO/PDFSeal/releases/new> (or `gh release create`).
-3. Attach:
-   - `PDFSeal-0.1.0.apk`
-   - `PDFSeal-0.1.0.apk.sha256`
-4. In the release notes include:
+1. Tag was created and pushed in §4 / before building:
+   `git tag -a v1.0.0 -m "…" && git push origin main && git push origin v1.0.0`
+2. Create the release with all **four** assets via `gh`:
+
+   ```bash
+   GH_TOKEN=$(gh auth token) gh release create v1.0.0 \
+     --repo WGRALGO/PDFSeal \
+     --title "PDFSeal v1.0.0 — First Stable GitHub Sideload Release" \
+     --notes-file <notes.md> \
+     release/PDFSeal-1.0.0-arm64-v8a.apk \
+     release/PDFSeal-1.0.0-arm64-v8a.apk.sha256 \
+     release/PDFSeal-1.0.0-universal.apk \
+     release/PDFSeal-1.0.0-universal.apk.sha256
+   ```
+
+   Re-upload after a rebuild: `gh release upload v1.0.0 <files> --clobber`.
+3. Release notes must include:
    - what changed,
-   - the APK SHA-256,
+   - **both** APK SHA-256 sums,
+   - the exact build commit + the verify command from §6.5,
    - the signing certificate SHA-256 fingerprint,
-   - a reminder that the build is local/offline with no ads/cloud/login.
+   - which APK to use (arm64-v8a recommended; universal for unsure/emulator),
+   - honest limits (flattened export, not redaction, not certified signing),
+   - reminder: local/offline, no ads/cloud/login/analytics/Play Services.
 
 **Never** attach or paste the `.jks`, `key.properties`, or any password.
 
@@ -133,6 +207,10 @@ cat PDFSeal-0.1.0.apk.sha256
 
 - [ ] `git status` clean; no `*.jks`, `key.properties` staged.
 - [ ] `git log -p | grep -iE 'PRIVATE KEY|storePassword|keyPassword'` → no hits.
-- [ ] `versionCode` increased vs. previous release.
+- [ ] `versionCode` increased vs. previous release (both APKs share it).
+- [ ] `HEAD == vX.Y.Z` tag commit; tree clean; built with `clean … -PabiSplit`.
+- [ ] Embedded `version-control-info.textproto` revision == tag commit (§6.5).
+- [ ] arm64 APK has `lib/arm64-v8a` only; universal has all 4 ABIs.
+- [ ] Both APKs signed with the genuine key (same cert SHA-256).
+- [ ] Both `.sha256` files match their APKs; both in release notes.
 - [ ] APK installs over the previous version on a device **without uninstall**.
-- [ ] SHA-256 in release notes matches the attached APK.
