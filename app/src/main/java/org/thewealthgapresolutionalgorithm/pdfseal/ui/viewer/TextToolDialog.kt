@@ -20,9 +20,11 @@ import androidx.compose.ui.unit.dp
 fun TextToolDialog(
     onDismiss: () -> Unit,
     onConfirm: (text: String, fontSizePt: Float) -> Unit,
+    initialText: String = "",
+    initialSizePt: Float = 14f,
 ) {
-    var text by remember { mutableStateOf("") }
-    var size by remember { mutableFloatStateOf(14f) }
+    var text by remember { mutableStateOf(initialText) }
+    var size by remember { mutableFloatStateOf(initialSizePt) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

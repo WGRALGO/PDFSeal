@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfCoordinateMapper
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.EditableCopyBuilder
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
@@ -186,6 +187,44 @@ class PdfViewerState(private val engine: PdfEngine) {
         } finally {
             busy = false
         }
+    }
+
+    /**
+     * OCR the page and turn recognised lines into editable text overlays.
+     * This is OCR-based reconstruction — review/correct before export.
+     */
+    suspend fun makeEditableCopyCurrent() {
+        val s = session ?: return
+        busy = true
+        try {
+            val ocr = engine.ocrPage(s, pageIndex)
+            lastOcr = ocr
+            val overlays = EditableCopyBuilder.buildOverlays(ocr)
+            overlays.forEach { s.addEdit(it) }
+            refreshOverlay()
+            lastMessage = if (overlays.isEmpty()) {
+                "No text recognised on this page."
+            } else {
+                "${overlays.size} editable text boxes created. Review before export."
+            }
+        } catch (e: Exception) {
+            lastMessage = "Make Editable Copy failed: ${e.message}"
+        } finally {
+            busy = false
+        }
+    }
+
+    fun selectedTextObject(): TextEditObject? =
+        overlay.firstOrNull { it.id == selectedId } as? TextEditObject
+
+    fun updateSelectedText(text: String, fontSizePt: Float) {
+        val id = selectedId ?: return
+        val obj = session?.editsFor(pageIndex)
+            ?.firstOrNull { it.id == id } as? TextEditObject ?: return
+        obj.text = text
+        obj.fontSizePt = fontSizePt
+        session?.hasUnsavedEdits = true
+        refreshOverlay()
     }
 
     suspend fun export(targetUri: Uri) {

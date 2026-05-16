@@ -56,6 +56,7 @@ fun ViewerScreen(
     var showTextDialog by remember { mutableStateOf(false) }
     var showSignatureDialog by remember { mutableStateOf(false) }
     var showOcrPanel by remember { mutableStateOf(false) }
+    var showEditTextDialog by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
 
     LaunchedEffect(state.lastMessage) {
@@ -120,6 +121,13 @@ fun ViewerScreen(
                     enabled = !state.busy && state.pageCount > 0,
                     onClick = { showOcrPanel = true },
                 ) { Text("OCR") }
+                Button(
+                    enabled = !state.busy && state.pageCount > 0,
+                    onClick = { scope.launch { state.makeEditableCopyCurrent() } },
+                ) { Text("Editable Copy") }
+                if (state.selectedTextObject() != null) {
+                    Button(onClick = { showEditTextDialog = true }) { Text("Edit") }
+                }
                 if (state.selectedId != null) {
                     Button(onClick = { state.deleteSelected() }) { Text("Delete") }
                 }
@@ -191,6 +199,23 @@ fun ViewerScreen(
                 showTextDialog = false
             },
         )
+    }
+
+    if (showEditTextDialog) {
+        val sel = state.selectedTextObject()
+        if (sel != null) {
+            TextToolDialog(
+                initialText = sel.text,
+                initialSizePt = sel.fontSizePt,
+                onDismiss = { showEditTextDialog = false },
+                onConfirm = { text, sizePt ->
+                    state.updateSelectedText(text, sizePt)
+                    showEditTextDialog = false
+                },
+            )
+        } else {
+            showEditTextDialog = false
+        }
     }
 
     if (showOcrPanel) {
