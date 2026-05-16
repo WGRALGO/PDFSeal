@@ -24,7 +24,7 @@ no analytics, no ads, no trackers, no Google Play Services.
 - Open local PDFs via the Android Storage Access Framework (SAF)
 - View, zoom, pan, page navigation, page thumbnails
 - **Add Text** — place new text boxes anywhere on a page
-- **Typed Signature** — type your name, pick a signature style, place/move/resize/rotate, flatten on export
+- **Typed Visual Signature** — type your name, pick a signature style, place/move/resize/rotate, flatten on export. A *visual* mark only — **not** a certified cryptographic digital signature.
 - **Cover & Replace** — visually cover a rectangular area and put replacement text on top
 - **Make Editable Copy** — OCR a page, reconstruct editable text overlays, export a flattened edited copy
 - Offline OCR (current page / selected pages / whole PDF where performance allows)
@@ -33,9 +33,9 @@ no analytics, no ads, no trackers, no Google Play Services.
 
 ## Current status
 
-> **Foundation stage (pre-v0.1.0).** The repository scaffolding, license/notice
-> documents, signing setup, build configuration, and the PDF engine architecture
-> are being established. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
+> **Working build (v0.5.0).** Open / view / Add Text / Visual Signature /
+> Cover & Replace / OCR / Make Editable Copy / page tools / flattened export
+> work end-to-end. See [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
 
 Feature status is tracked honestly. Features are not shown as done until they
@@ -54,6 +54,15 @@ PDFSeal does **not** claim Acrobat-level native PDF text editing.
 - **Make Editable Copy** — OCR-based reconstruction. The app renders the page,
   runs offline OCR, and creates editable text boxes from recognised text. This is
   **not** true word-processor-style editing of the original PDF text.
+- **Export = flattened visual copy.** Export draws each page onto a new PDF and
+  paints edits on top. The output is a flattened/rasterised visual copy, **not**
+  a native-object PDF edit. Original PDF objects such as forms, links, bookmarks,
+  layers, annotations, selectable text, accessibility structure, metadata, or
+  existing digital signatures may not be preserved. The app shows this warning
+  before every export.
+- **Typed Visual Signature** — a visual typed-name mark only. It is **not** a
+  certified cryptographic digital signature and carries no legal signing
+  guarantee.
 
 ### OCR caveat
 
@@ -81,8 +90,26 @@ Quick version:
 
 ```bash
 export JAVA_HOME=/path/to/jdk-17
+
+# Debug APK — universal (all ABIs, installs on emulators + real tablets)
 ./gradlew :app:assembleDebug
+
+# Release APK — universal
+./gradlew :app:assembleRelease
+
+# Smaller ARM-only release APKs for sideloading to physical tablets.
+# Produces per-ABI arm64-v8a / armeabi-v7a APKs AND a universal APK.
+./gradlew :app:assembleRelease -PabiSplit
 ```
+
+ABI splitting is **opt-in** (`-PabiSplit`). Without it every build is a single
+universal APK so x86/x86_64 emulators keep working. Outputs land in
+`app/build/outputs/apk/`.
+
+Third-party license notices live in **[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)**
+(repo root). That exact file is copied into the APK at `assets/THIRD_PARTY_LICENSES.md`
+at build time and shown in-app on the **About / Privacy / Licenses** screen, so
+the bundled notices can never drift from source.
 
 ## Sideloading
 

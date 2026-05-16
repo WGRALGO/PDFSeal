@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -48,12 +49,42 @@ class FileAccessManager(private val context: Context) {
         return uri.lastPathSegment ?: "document.pdf"
     }
 
-    fun readAllBytes(uri: Uri): ByteArray =
-        openInput(uri).use { it.readBytes() }
-
     fun openInput(uri: Uri): InputStream =
         resolver.openInputStream(uri)
             ?: error("Cannot open input stream for $uri")
+
+    /**
+     * Stream the content URI into a private temp file under the app cache (a
+     * no-backup, auto-purgeable area) instead of reading the whole PDF into a
+     * ByteArray. MuPDF then opens it by path and memory-maps lazily, so large
+     * PDFs no longer have to fit in RAM. Caller owns the returned file and must
+     * delete it (see PdfDocumentSession.close()).
+     */
+    fun copyToCacheTempFile(uri: Uri): File {
+        val dir = File(context.cacheDir, "pdfseal_open").apply { mkdirs() }
+        val temp = File.createTempFile("doc_", ".pdf", dir)
+        try {
+            val input = resolver.openInputStream(uri)
+                ?: throw java.io.IOException(
+                    "Could not read the file. The app may have lost access to " +
+                        "it — reopen it from your file manager.",
+                )
+            input.use { ins ->
+                temp.outputStream().use { outs -> ins.copyTo(outs, 64 * 1024) }
+            }
+        } catch (e: SecurityException) {
+            temp.delete()
+            throw java.io.IOException(
+                "Permission to this file was lost. Reopen it from your file " +
+                    "manager.",
+                e,
+            )
+        } catch (e: Throwable) {
+            temp.delete()
+            throw e
+        }
+        return temp
+    }
 
     /** Open an output stream. "wt" truncates — only used on an explicit export target. */
     fun openOutput(uri: Uri, mode: String = "wt"): OutputStream =

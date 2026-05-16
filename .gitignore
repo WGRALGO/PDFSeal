@@ -38,3 +38,7 @@ google-services.json
 
 # Kotlin
 .kotlin/
+
+# Build-copied from repo-root THIRD_PARTY_LICENSES.md by the
+# bundleThirdPartyLicenses Gradle task — regenerated every build.
+/app/src/main/assets/THIRD_PARTY_LICENSES.md

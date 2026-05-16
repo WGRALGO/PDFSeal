@@ -44,7 +44,7 @@ fun HomeScreen(
     ) {
         Text("PDFSeal", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Edit · Sign · OCR · Organize — local & offline",
+            "Edit · Visual Signature · OCR · Organize — local & offline",
             style = MaterialTheme.typography.bodyMedium,
         )
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android <= 11 (API 23..30) auto-backup rules.
+
+  PDFSeal does not back up ANY local app data. Recent-document info, temp PDF
+  files, OCR text/cache, edited PDFs, DataStore preferences and all cache are
+  excluded so nothing leaves the device via cloud auto-backup. Combined with
+  android:allowBackup="false" this is belt-and-suspenders.
+-->
+<full-backup-content>
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+    <exclude domain="root" />
+</full-backup-content>

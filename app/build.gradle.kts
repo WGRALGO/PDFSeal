@@ -24,8 +24,8 @@ android {
         applicationId = "org.thewealthgapresolutionalgorithm.pdfseal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 7
-        versionName = "0.4.0"
+        versionCode = 8
+        versionName = "0.5.0"
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField(
@@ -81,6 +81,22 @@ android {
         buildConfig = true
     }
 
+    // ABI splits are OFF by default so the normal build stays universal and
+    // installs on x86/x86_64 emulators AND real ARM tablets. Opt in with
+    //   ./gradlew :app:assembleRelease -PabiSplit
+    // to also get smaller per-ABI ARM APKs (arm64-v8a / armeabi-v7a) for
+    // sideloading to physical tablets, while still producing a universal APK.
+    if (project.hasProperty("abiSplit")) {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                include("arm64-v8a", "armeabi-v7a")
+                isUniversalApk = true
+            }
+        }
+    }
+
     // Tesseract memory-maps the trained data; it must NOT be compressed in the APK.
     androidResources {
         noCompress += "traineddata"
@@ -92,6 +108,16 @@ android {
         }
     }
 }
+
+// Bundle the canonical THIRD_PARTY_LICENSES.md into the APK assets so the
+// in-app About / Licenses screen shows the SAME notices that ship in the repo
+// root (single source of truth — they cannot drift). Required because the
+// app's About text references this file; it must actually be packaged.
+val bundleLicenses = tasks.register<Copy>("bundleThirdPartyLicenses") {
+    from(rootProject.file("THIRD_PARTY_LICENSES.md"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+tasks.named("preBuild") { dependsOn(bundleLicenses) }
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.09.03")
