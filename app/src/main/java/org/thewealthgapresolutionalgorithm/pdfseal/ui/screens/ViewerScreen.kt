@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -125,7 +126,7 @@ fun ViewerScreen(
         },
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
-                Column {
+                Column(Modifier.navigationBarsPadding()) {
                     if (hasSelection) {
                         Row(
                             modifier = Modifier
@@ -317,7 +318,7 @@ fun ViewerScreen(
                     EditObjectsLayer(
                         state = state,
                         scalePxPerPt = scale,
-                        handleRadiusPx = 18f,
+                        densityPxPerDp = density,
                     )
                     if (state.coverMode) {
                         CoverDrawLayer(
