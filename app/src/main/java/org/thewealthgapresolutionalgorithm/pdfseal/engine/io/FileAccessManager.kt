@@ -18,9 +18,6 @@ class FileAccessManager(private val context: Context) {
     companion object {
         /** Max wall time to pull a content URI into cache before failing. */
         const val OPEN_TIMEOUT_MS = 30_000L
-
-        /** Max wall time for the non-critical display-name lookup. */
-        const val NAME_TIMEOUT_MS = 8_000L
     }
 
     private val resolver: ContentResolver get() = context.contentResolver
@@ -47,23 +44,14 @@ class FileAccessManager(private val context: Context) {
         resolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
 
     fun displayName(uri: Uri): String {
-        val fallback = uri.lastPathSegment ?: "document.pdf"
-        // The title is non-critical, but resolver.query() can itself hang on a
-        // bad provider — bound it and fall back rather than block the open.
-        return runCatching {
-            IoWatchdog.callWithTimeout(NAME_TIMEOUT_MS) {
-                resolver.query(
-                    uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null,
-                )?.use { c ->
-                    if (c.moveToFirst()) {
-                        val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                        if (idx >= 0) c.getString(idx) else null
-                    } else {
-                        null
-                    }
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { c ->
+                if (c.moveToFirst()) {
+                    val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) return c.getString(idx)
                 }
             }
-        }.getOrNull() ?: fallback
+        return uri.lastPathSegment ?: "document.pdf"
     }
 
     fun openInput(uri: Uri): InputStream =
@@ -95,20 +83,16 @@ class FileAccessManager(private val context: Context) {
         val dir = File(context.cacheDir, "pdfseal_open").apply { mkdirs() }
         val temp = File.createTempFile("doc_", ".pdf", dir)
         try {
-            // openInputStream() itself — not just the read — can hang
-            // indefinitely on a Fire OS media-store / remote content:// URI
-            // (confirmed on-device: "Loading…" forever, no error). Run the
-            // whole intake under the watchdog so a stuck provider call is
-            // abandoned and surfaces a clear error instead.
-            IoWatchdog.callWithTimeout(timeoutMs) {
-                val input = resolver.openInputStream(uri)
-                    ?: throw java.io.IOException(
-                        "Could not read the file. The app may have lost " +
-                            "access to it — reopen it from your file manager.",
-                    )
-                input.use { ins ->
-                    temp.outputStream().use { outs -> ins.copyTo(outs, 64 * 1024) }
-                }
+            val input = resolver.openInputStream(uri)
+                ?: throw java.io.IOException(
+                    "Could not read the file. The app may have lost access to " +
+                        "it — reopen it from your file manager.",
+                )
+            // Bounded copy: a stalled provider stream (e.g. a media-store /
+            // remote content:// URI on Fire OS) used to hang "Loading…"
+            // forever with no error. StreamCopy aborts past the timeout.
+            temp.outputStream().use { outs ->
+                StreamCopy.copyWithTimeout(input, outs, timeoutMs)
             }
         } catch (e: SecurityException) {
             temp.delete()
