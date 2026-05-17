@@ -26,4 +26,4 @@ Honest about limits:
 
 PDFSeal uses MuPDF (AGPL-3.0) and Tesseract (Apache-2.0) and is distributed
 under the GNU Affero General Public License v3.0 or later. Source code:
-https://github.com/WGRALGO/PDFSeal
+https://github.com/WGRALGO/WGRALGO-PDFSeal

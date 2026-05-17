@@ -1,9 +1,11 @@
 # PDFSeal
 
-**v1.0.3 — withdrawal lifted.** PDFSeal 1.0.0 was withdrawn after real-device
+**v1.0.4 — withdrawal lifted.** PDFSeal 1.0.0 was withdrawn after real-device
 testing exposed a viewer defect that stranded the app on a permanent
-"Loading…". The root cause has been fixed and the open → edit → export →
-reopen round trip is now device-verified (Amazon Fire HD 10).
+"Loading…". v1.0.3 fixed the root cause and is device-verified (Amazon Fire
+HD 10) for the open → edit → export → reopen round trip; v1.0.4 is identical
+to v1.0.3 apart from using the canonical source-repo URL (no functional
+change), so the verification below carries over unchanged.
 
 **Verified on-device for v1.0.3:** opening a PDF delivered by Android (the
 "Open with" / `VIEW` content-URI path); page rendering; Add Text; Typed Visual
@@ -21,7 +23,7 @@ behavior across older versions, and PDFs much larger than ~50 pages. The
 Android system file-picker's file *list* could not be driven by the test
 automation on this hardware (an OS/test-harness limitation, not an app
 defect); the app's open code path is exercised through the equivalent
-content-URI path. Treat v1.0.3 as a verified-core release, not an
+content-URI path. Treat v1.0.4 as a verified-core release, not an
 exhaustively-certified one.
 
 ## Project Purpose
@@ -38,7 +40,7 @@ PDFSeal will remain open source so the code can be reviewed, repaired, improved,
 
 ---
 
-[Source code](https://github.com/WGRALGO/PDFSeal) · License: **AGPL-3.0-or-later**
+[Source code](https://github.com/WGRALGO/WGRALGO-PDFSeal) · License: **AGPL-3.0-or-later**
 
 ## What PDFSeal is
 
@@ -89,11 +91,13 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Release withdrawn — v1.0.0 pulled.** PDFSeal is currently in pre-release
-> development. No stable APK is available yet. The v1.0.0 APK was withdrawn
-> after real-device testing showed it was not acceptable for public release.
-> See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for the withdrawal notice
-> and the device tests that must pass before any future release,
+> **Released — v1.0.4.** The v1.0.0 withdrawal is lifted (see
+> [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md), now RESOLVED). v1.0.3 fixed
+> the defect that withdrew v1.0.0 and is device-verified for the open → edit →
+> export → reopen round trip with the original file byte-for-byte unchanged;
+> v1.0.4 is v1.0.3 with the canonical source URL only (no functional change).
+> Verified scope and the honestly-listed not-exhaustively-tested areas are in
+> the banner at the top of this file. See
 > [docs/TESTING.md](docs/TESTING.md) for the test matrix,
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
@@ -228,7 +232,7 @@ Because PDFSeal links MuPDF, the entire project is distributed under the
 **GNU Affero General Public License v3.0 or later**. When PDFSeal is
 distributed publicly, the complete corresponding source code for that build
 must remain publicly available at
-[https://github.com/WGRALGO/PDFSeal](https://github.com/WGRALGO/PDFSeal)
+[https://github.com/WGRALGO/WGRALGO-PDFSeal](https://github.com/WGRALGO/WGRALGO-PDFSeal)
 (or another clearly stated public location) — this is a hard AGPL-3.0
 obligation.
 

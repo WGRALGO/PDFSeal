@@ -24,8 +24,8 @@ android {
         applicationId = "org.thewealthgapresolutionalgorithm.pdfseal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.0.3"
+        versionCode = 16
+        versionName = "1.0.4"
         vectorDrawables { useSupportLibrary = true }
 
         buildConfigField(
@@ -37,7 +37,7 @@ android {
         buildConfigField(
             "String",
             "SOURCE_URL",
-            "\"https://github.com/WGRALGO/PDFSeal\"",
+            "\"https://github.com/WGRALGO/WGRALGO-PDFSeal\"",
         )
     }
 

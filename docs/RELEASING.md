@@ -182,7 +182,7 @@ rebuild from §4 (`clean` is required).
 
    ```bash
    GH_TOKEN=$(gh auth token) gh release create v1.0.0 \
-     --repo WGRALGO/PDFSeal \
+     --repo WGRALGO/WGRALGO-PDFSeal \
      --title "PDFSeal v1.0.0 — First Stable GitHub Sideload Release" \
      --notes-file <notes.md> \
      release/PDFSeal-1.0.0-arm64-v8a.apk \

@@ -35,10 +35,10 @@ Categories:
   - Writing
   - Office
 License: AGPL-3.0-or-later
-SourceCode: https://github.com/WGRALGO/PDFSeal
-IssueTracker: https://github.com/WGRALGO/PDFSeal/issues
+SourceCode: https://github.com/WGRALGO/WGRALGO-PDFSeal
+IssueTracker: https://github.com/WGRALGO/WGRALGO-PDFSeal/issues
 RepoType: git
-Repo: https://github.com/WGRALGO/PDFSeal.git
+Repo: https://github.com/WGRALGO/WGRALGO-PDFSeal.git
 
 Builds:
   - versionName: "0.4.0"

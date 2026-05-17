@@ -15,9 +15,9 @@ are therefore:
 If you discover a vulnerability, please report it privately:
 
 1. **Preferred:** open a private advisory via GitHub Security Advisories on
-   <https://github.com/WGRALGO/PDFSeal/security/advisories/new>.
+   <https://github.com/WGRALGO/WGRALGO-PDFSeal/security/advisories/new>.
 2. Alternatively, open a minimal issue at
-   <https://github.com/WGRALGO/PDFSeal/issues> that states a security problem
+   <https://github.com/WGRALGO/WGRALGO-PDFSeal/issues> that states a security problem
    exists **without** disclosing exploit details, and request a private channel.
 
 Please do **not** open a public issue containing a working exploit before a fix

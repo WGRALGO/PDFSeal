@@ -35,7 +35,7 @@ open → edit → export → reopen in another viewer, with the original unchang
 ## v1.0.0 — Stable release ✅ DONE (2026-05-16)
 
 Tagged `v1.0.0` (commit `b952aa0`), **GitHub Release published**:
-<https://github.com/WGRALGO/PDFSeal/releases/tag/v1.0.0> — dual signed APKs
+<https://github.com/WGRALGO/WGRALGO-PDFSeal/releases/tag/v1.0.0> — dual signed APKs
 (arm64-v8a + universal) + SHA-256, provenance-verified. See
 [RELEASING.md](RELEASING.md) and [TESTING.md](TESTING.md).
 

@@ -114,7 +114,7 @@ available to anyone who receives the app.
 
 PDFSeal is **not** a closed-source app and must never be described as one.
 
-Source code: https://github.com/WGRALGO/PDFSeal
+Source code: https://github.com/WGRALGO/WGRALGO-PDFSeal
 
 When PDFSeal is distributed publicly (any APK handed to anyone), the complete
 corresponding source code for that exact build MUST remain publicly available
