@@ -327,6 +327,19 @@ fun ViewerScreen(
                         )
                     }
                 }
+            } else if (state.openFailed) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        state.lastMessage
+                            ?: "PDFSeal could not open this PDF.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onBack) { Text("Back") }
+                }
             } else {
                 Text("Loading…", style = MaterialTheme.typography.bodyLarge)
             }

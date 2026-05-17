@@ -51,6 +51,11 @@ class PdfViewerState(private val engine: PdfEngine) {
         private set
     var lastMessage by mutableStateOf<String?>(null)
 
+    /** True after an open() attempt failed with no document loaded. Lets the
+     *  viewer show a real error + Back instead of a forever "Loading…". */
+    var openFailed by mutableStateOf(false)
+        private set
+
     val overlay = mutableStateListOf<PdfEditObject>()
 
     val pageCount: Int get() = session?.pageCount ?: 0
@@ -63,11 +68,17 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     suspend fun open(uri: Uri) {
         busy = true
+        openFailed = false
         try {
             session = engine.openDocument(uri)
             pageIndex = 0
             zoom = 1f; panX = 0f; panY = 0f
             renderCurrent()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Structured-cancellation must propagate, never be swallowed as
+            // an "open failed". (A prior bug surfaced this as a fake error
+            // and stranded the viewer on "Loading…".)
+            throw e
         } catch (e: Exception) {
             // PdfEngine throws IOException with a user-facing message
             // (password/encrypted, corrupt, no pages, lost permission).
@@ -76,6 +87,7 @@ class PdfViewerState(private val engine: PdfEngine) {
                 ?: "PDFSeal could not open this PDF. The file may be " +
                 "damaged, encrypted, or unsupported."
             session = null
+            openFailed = true
         } finally {
             busy = false
         }

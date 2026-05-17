@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -71,13 +73,23 @@ class MainActivity : ComponentActivity() {
                         },
                     )
                     true -> {
-                        LaunchedEffect(pendingViewUri) {
-                            val u = pendingViewUri ?: return@LaunchedEffect
-                            pendingViewUri = null
-                            viewerState.open(u)
-                            nav.navigate("viewer") {
-                                launchSingleTop = true
-                            }
+                        // Keyed on Unit, NOT on pendingViewUri: clearing the
+                        // pending URI must not change the effect key, or
+                        // Compose cancels this effect mid-open and the
+                        // viewer dead-ends on "Loading…" forever (the URI
+                        // is cleared before open() finishes). Collect the
+                        // URI as a flow so the open always runs to
+                        // completion.
+                        LaunchedEffect(Unit) {
+                            snapshotFlow { pendingViewUri }
+                                .filterNotNull()
+                                .collect { u ->
+                                    pendingViewUri = null
+                                    viewerState.open(u)
+                                    nav.navigate("viewer") {
+                                        launchSingleTop = true
+                                    }
+                                }
                         }
                         NavHost(
                             navController = nav,
