@@ -15,6 +15,11 @@ import java.io.OutputStream
  */
 class FileAccessManager(private val context: Context) {
 
+    companion object {
+        /** Max wall time to pull a content URI into cache before failing. */
+        const val OPEN_TIMEOUT_MS = 30_000L
+    }
+
     private val resolver: ContentResolver get() = context.contentResolver
 
     fun takePersistableRead(uri: Uri) {
@@ -74,7 +79,7 @@ class FileAccessManager(private val context: Context) {
         }
     }
 
-    fun copyToCacheTempFile(uri: Uri): File {
+    fun copyToCacheTempFile(uri: Uri, timeoutMs: Long = OPEN_TIMEOUT_MS): File {
         val dir = File(context.cacheDir, "pdfseal_open").apply { mkdirs() }
         val temp = File.createTempFile("doc_", ".pdf", dir)
         try {
@@ -83,8 +88,11 @@ class FileAccessManager(private val context: Context) {
                     "Could not read the file. The app may have lost access to " +
                         "it — reopen it from your file manager.",
                 )
-            input.use { ins ->
-                temp.outputStream().use { outs -> ins.copyTo(outs, 64 * 1024) }
+            // Bounded copy: a stalled provider stream (e.g. a media-store /
+            // remote content:// URI on Fire OS) used to hang "Loading…"
+            // forever with no error. StreamCopy aborts past the timeout.
+            temp.outputStream().use { outs ->
+                StreamCopy.copyWithTimeout(input, outs, timeoutMs)
             }
         } catch (e: SecurityException) {
             temp.delete()
