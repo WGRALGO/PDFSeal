@@ -5,9 +5,11 @@ for design see [ARCHITECTURE.md](ARCHITECTURE.md); for the release process see
 [RELEASING.md](RELEASING.md) (dual-APK arm64-v8a + universal flow with build
 provenance).
 
-_Last updated: 2026-05-17 — current `versionName` **1.0.3**, `versionCode`
-**15**; **publicly released** (GitHub Release `v1.0.3`). v1.0.0 withdrawal
-lifted._
+_Last updated: 2026-05-17 — current source `versionName` 1.0.4, `versionCode`
+16, but **WITHDRAWN: no public APK distributed**. The v1.0.3/v1.0.4 GitHub
+releases exist as records with **no installable APK**. Real-device use showed
+the editor is not acceptable (OCR no-op, placed text cannot be deleted,
+signature cannot be positioned/resized). Source only._
 
 ## Ownership
 
@@ -21,23 +23,21 @@ line. There is intentionally **no in-app Credits screen**.
 
 ## Released
 
-- **v1.0.3 — PUBLISHED** (GitHub Release `v1.0.3`, `versionCode` 15). Fixes
-  the v1.0.0 defect (Compose `LaunchedEffect` self-cancel → permanent
-  "Loading…"; root cause found via JDWP thread dump, earlier I/O-timeout work
-  reverted as a misdiagnosis). Device-verified on Amazon Fire HD 10: open →
-  edit (text, signature, cover, OCR, editable copy, rotate, delete, reorder,
-  combined) → flattened export → reopen, with the original file byte-for-byte
-  unchanged (SHA-256) on every export. Honest residual scope (not exhaustively
-  device-tested): scanned/corrupt/password PDFs, install/upgrade matrix, very
-  large PDFs, OS file-picker list-tap (test-automation/OS limitation, not an
-  app defect). 3 ABI APKs (arm64-v8a, armeabi-v7a, universal) + `.sha256`,
-  release-signed (cert SHA-256 `f8d74e09…356137ed5`), embedded source revision
-  == the `v1.0.3` tag commit.
-- **v1.0.0 was WITHDRAWN, now RESOLVED in v1.0.3** — see
-  [RELEASE_WITHDRAWAL.md](../RELEASE_WITHDRAWAL.md). The withdrawn v1.0.0
-  GitHub Release stays deleted; tag `v1.0.0-withdrawn` is kept for the record.
-- Remaining published releases: `v1.0.3`, `v0.5.1`, `v0.5.0`, `v0.4.0`.
-- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0-withdrawn`, `v1.0.3`.
+- **WITHDRAWN — no public APK.** v1.0.3 did fix a real defect (Compose
+  `LaunchedEffect` self-cancel → permanent "Loading…"; root cause found via
+  JDWP thread dump, an earlier I/O-timeout attempt reverted as a
+  misdiagnosis). An automated open → edit → export → reopen check passed and
+  the original file was byte-for-byte unchanged on every export — **but that
+  automated check was insufficient and the "device-verified" claim was an
+  overreach.** Hands-on real-device use shows the editor is not acceptable:
+  OCR produces nothing usable, placed text cannot be deleted, the typed
+  signature cannot be positioned or resized. The v1.0.3 and v1.0.4 GitHub
+  releases are kept as records but **carry no installable APK**; no APK is
+  distributed. See [RELEASE_WITHDRAWAL.md](../RELEASE_WITHDRAWAL.md).
+- v1.0.0 GitHub Release stays deleted; tag `v1.0.0-withdrawn` kept for record.
+- Source-only. Older `v0.5.1` / `v0.5.0` / `v0.4.0` releases untouched
+  (pre-1.0 development builds, as in the original post-v1.0.0 state).
+- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0-withdrawn`, `v1.0.3`, `v1.0.4`.
 
 ## v1.0.1 — viewer/editor UX overhaul (local build, NOT released)
 

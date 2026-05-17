@@ -1,34 +1,28 @@
-# PDFSeal 1.0.0 Withdrawal — RESOLVED in v1.0.3
+# PDFSeal Withdrawal Notice
 
-**Status: resolved.** The v1.0.0 withdrawal is lifted as of **v1.0.3**
-(`versionCode` 15). This file is kept for the record.
+**Status: withdrawn. Not ready for public use.**
 
-Root cause of the v1.0.0 defect: a Compose effect-keying bug — `MainActivity`
-cleared the pending view URI *before* awaiting the open, which changed the
-`LaunchedEffect` key and cancelled the open mid-flight, leaving the viewer on a
-permanent "Loading…". (Earlier I/O-timeout work was a misdiagnosis and was
-reverted.) Fixed in v1.0.3 by collecting the URI via `snapshotFlow` inside a
-`LaunchedEffect(Unit)` so clearing the flag cannot cancel the open, plus a real
-error + Back state instead of an endless "Loading…".
+PDFSeal has been withdrawn after real-device testing. No public APK is
+distributed (the v1.0.3 and v1.0.4 GitHub releases exist as records but carry
+no installable APK).
 
-v1.0.3 is device-verified on an Amazon Fire HD 10 for the open → edit → export
-→ reopen round trip, with the original file confirmed byte-for-byte unchanged
-(SHA-256) on every export. The "Before Any Future Release" checklist below is
-mostly satisfied; items **not** exhaustively device-tested for v1.0.3 are
-called out honestly in [README.md](README.md) and
-[docs/STATUS.md](docs/STATUS.md) (scanned/corrupt/password PDFs,
-install/upgrade matrix, very large PDFs, and the OS file-picker list-tap which
-the test automation could not drive on this hardware).
+Real-device use showed the markup editor is not acceptable for serious work:
 
-The original v1.0.0 withdrawal notice follows unchanged.
+- **OCR does nothing useful** — the recognised text is not actually usable.
+- **Placed text cannot be deleted.**
+- **The typed signature cannot be positioned or resized.**
+- Overall, the editor cannot do real work.
 
----
+A v1.0.3 fix did resolve a separate defect that had stranded the viewer on a
+permanent "Loading…" (a Compose `LaunchedEffect` self-cancel), and an
+automated open → edit → export → reopen check passed. **That automated check
+was insufficient:** it only confirmed that an export file is produced and the
+original file is left byte-for-byte unchanged — it did not, and could not,
+prove the editing tools are usable. Hands-on use shows they are not. The
+automated "verified" claim was an overreach and is retracted.
 
-# PDFSeal 1.0.0 Withdrawal Notice
-
-PDFSeal 1.0.0 was withdrawn after real-device testing showed the APK was not acceptable for public release.
-
-The source code remains available because PDFSeal is an open-source project under active review and repair.
+The source code remains available because PDFSeal is an open-source project
+under active review and repair. Build from source only.
 
 ## Project Purpose
 
@@ -65,6 +59,6 @@ Before any future release, PDFSeal must pass real-device testing for:
 - Verifying checksums
 - Testing install/uninstall/reinstall behavior
 
-Status: **RESOLVED in v1.0.3** — withdrawal lifted; verified-core release
-(see README.md / docs/STATUS.md for exact verified scope and residual
-untested areas).
+Status: **withdrawn. Not ready for public use.** The editor must do real
+work (usable OCR result, delete placed text, position/resize the signature,
+and the rest of the list above) before any future release.

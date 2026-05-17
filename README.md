@@ -1,30 +1,14 @@
 # PDFSeal
 
-**v1.0.4 — withdrawal lifted.** PDFSeal 1.0.0 was withdrawn after real-device
-testing exposed a viewer defect that stranded the app on a permanent
-"Loading…". v1.0.3 fixed the root cause and is device-verified (Amazon Fire
-HD 10) for the open → edit → export → reopen round trip; v1.0.4 is identical
-to v1.0.3 apart from using the canonical source-repo URL (no functional
-change), so the verification below carries over unchanged.
+⚠️ Release withdrawn.
 
-**Verified on-device for v1.0.3:** opening a PDF delivered by Android (the
-"Open with" / `VIEW` content-URI path); page rendering; Add Text; Typed Visual
-Signature; Cover & Replace; OCR (with the post-OCR review warning); Make
-Editable Copy; rotate / delete / reorder pages; exporting a flattened copy;
-and — for every export — confirming the **original file is byte-for-byte
-unchanged** (SHA-256). Exported PDFs reopen correctly in PDFSeal and in
-independent PDF readers. No `INTERNET` permission; no ads, analytics, trackers,
-cloud, account, billing, or Google Play Services (verified by manifest and
-dependency inspection).
+PDFSeal has been withdrawn after real-device testing. The APK is not ready for public use and should not be downloaded, installed, shared, mirrored, or relied on.
 
-**Honest scope — not yet exhaustively device-tested for this release:**
-scanned-only / corrupt / password-protected PDF handling, install/upgrade
-behavior across older versions, and PDFs much larger than ~50 pages. The
-Android system file-picker's file *list* could not be driven by the test
-automation on this hardware (an OS/test-harness limitation, not an app
-defect); the app's open code path is exercised through the equivalent
-content-URI path. Treat v1.0.4 as a verified-core release, not an
-exhaustively-certified one.
+Real-device use showed the markup editor is not usable for serious work: OCR does nothing useful, placed text cannot be deleted, and the typed signature cannot be positioned or resized. An earlier automated open → edit → export → reopen check only confirmed that an export file is produced and the original file is left unchanged — it did **not** prove the editing tools are usable. They are not.
+
+The source code remains available because PDFSeal is an open-source project under active review and repair.
+
+No stable public APK release is currently available.
 
 ## Project Purpose
 
@@ -91,13 +75,14 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Released — v1.0.4.** The v1.0.0 withdrawal is lifted (see
-> [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md), now RESOLVED). v1.0.3 fixed
-> the defect that withdrew v1.0.0 and is device-verified for the open → edit →
-> export → reopen round trip with the original file byte-for-byte unchanged;
-> v1.0.4 is v1.0.3 with the canonical source URL only (no functional change).
-> Verified scope and the honestly-listed not-exhaustively-tested areas are in
-> the banner at the top of this file. See
+> **Release withdrawn.** PDFSeal is in pre-release development. No stable APK
+> is available. Real-device testing showed the markup editor is not acceptable
+> for public use: OCR does nothing useful, placed text cannot be deleted, and
+> the typed signature cannot be positioned or resized. An automated
+> export-round-trip check passed (an edited copy is produced and the original
+> is unchanged) but did not prove the editing tools usable — they are not.
+> See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for the withdrawal notice
+> and the device tests that must pass before any future release,
 > [docs/TESTING.md](docs/TESTING.md) for the test matrix,
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
