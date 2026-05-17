@@ -1,12 +1,28 @@
 # PDFSeal
 
-⚠️ Release withdrawn.
+**v1.0.3 — withdrawal lifted.** PDFSeal 1.0.0 was withdrawn after real-device
+testing exposed a viewer defect that stranded the app on a permanent
+"Loading…". The root cause has been fixed and the open → edit → export →
+reopen round trip is now device-verified (Amazon Fire HD 10).
 
-PDFSeal 1.0.0 has been withdrawn after real-device testing. The APK is not ready for public use and should not be downloaded, installed, shared, mirrored, or relied on.
+**Verified on-device for v1.0.3:** opening a PDF delivered by Android (the
+"Open with" / `VIEW` content-URI path); page rendering; Add Text; Typed Visual
+Signature; Cover & Replace; OCR (with the post-OCR review warning); Make
+Editable Copy; rotate / delete / reorder pages; exporting a flattened copy;
+and — for every export — confirming the **original file is byte-for-byte
+unchanged** (SHA-256). Exported PDFs reopen correctly in PDFSeal and in
+independent PDF readers. No `INTERNET` permission; no ads, analytics, trackers,
+cloud, account, billing, or Google Play Services (verified by manifest and
+dependency inspection).
 
-The source code remains available because PDFSeal is an open-source project under active review and repair.
-
-No stable public APK release is currently available.
+**Honest scope — not yet exhaustively device-tested for this release:**
+scanned-only / corrupt / password-protected PDF handling, install/upgrade
+behavior across older versions, and PDFs much larger than ~50 pages. The
+Android system file-picker's file *list* could not be driven by the test
+automation on this hardware (an OS/test-harness limitation, not an app
+defect); the app's open code path is exercised through the equivalent
+content-URI path. Treat v1.0.3 as a verified-core release, not an
+exhaustively-certified one.
 
 ## Project Purpose
 

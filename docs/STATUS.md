@@ -5,8 +5,9 @@ for design see [ARCHITECTURE.md](ARCHITECTURE.md); for the release process see
 [RELEASING.md](RELEASING.md) (dual-APK arm64-v8a + universal flow with build
 provenance).
 
-_Last updated: 2026-05-17 — current `versionName` 1.0.2, `versionCode` 12
-(local build only; not publicly released)._
+_Last updated: 2026-05-17 — current `versionName` **1.0.3**, `versionCode`
+**15**; **publicly released** (GitHub Release `v1.0.3`). v1.0.0 withdrawal
+lifted._
 
 ## Ownership
 
@@ -20,11 +21,23 @@ line. There is intentionally **no in-app Credits screen**.
 
 ## Released
 
-- **v1.0.0 was WITHDRAWN** — see [RELEASE_WITHDRAWAL.md](../RELEASE_WITHDRAWAL.md).
-  Real-device testing showed the markup editor was unusable. GitHub Release
-  v1.0.0 was deleted; tag replaced with `v1.0.0-withdrawn`. Repo stays public.
-- Remaining published releases: `v0.5.1`, `v0.5.0`, `v0.4.0` (untouched).
-- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0-withdrawn`.
+- **v1.0.3 — PUBLISHED** (GitHub Release `v1.0.3`, `versionCode` 15). Fixes
+  the v1.0.0 defect (Compose `LaunchedEffect` self-cancel → permanent
+  "Loading…"; root cause found via JDWP thread dump, earlier I/O-timeout work
+  reverted as a misdiagnosis). Device-verified on Amazon Fire HD 10: open →
+  edit (text, signature, cover, OCR, editable copy, rotate, delete, reorder,
+  combined) → flattened export → reopen, with the original file byte-for-byte
+  unchanged (SHA-256) on every export. Honest residual scope (not exhaustively
+  device-tested): scanned/corrupt/password PDFs, install/upgrade matrix, very
+  large PDFs, OS file-picker list-tap (test-automation/OS limitation, not an
+  app defect). 3 ABI APKs (arm64-v8a, armeabi-v7a, universal) + `.sha256`,
+  release-signed (cert SHA-256 `f8d74e09…356137ed5`), embedded source revision
+  == the `v1.0.3` tag commit.
+- **v1.0.0 was WITHDRAWN, now RESOLVED in v1.0.3** — see
+  [RELEASE_WITHDRAWAL.md](../RELEASE_WITHDRAWAL.md). The withdrawn v1.0.0
+  GitHub Release stays deleted; tag `v1.0.0-withdrawn` is kept for the record.
+- Remaining published releases: `v1.0.3`, `v0.5.1`, `v0.5.0`, `v0.4.0`.
+- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0-withdrawn`, `v1.0.3`.
 
 ## v1.0.1 — viewer/editor UX overhaul (local build, NOT released)
 
