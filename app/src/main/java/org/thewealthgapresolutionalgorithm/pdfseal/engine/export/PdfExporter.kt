@@ -1,21 +1,13 @@
 package org.thewealthgapresolutionalgorithm.pdfseal.engine.export
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
-import androidx.core.content.res.ResourcesCompat
-import org.thewealthgapresolutionalgorithm.pdfseal.R
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfPageRenderer
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.EditObjectPainter
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.io.FileAccessManager
 
 /**
@@ -35,6 +27,7 @@ class PdfExporter(
     private val files: FileAccessManager,
 ) {
     private val renderer = PdfPageRenderer()
+    private val painter = EditObjectPainter(context)
 
     fun exportCopy(session: PdfDocumentSession, targetUri: Uri): Uri =
         exportFlattened(session, targetUri)
@@ -85,18 +78,7 @@ class PdfExporter(
 
                 session.editsFor(srcIndex)
                     .sortedBy { it.zOrder }
-                    .forEach { obj ->
-                        when (obj) {
-                            is CoverReplaceObject -> {
-                                drawFilledRect(canvas, obj.rectPt.run {
-                                    RectF(left, top, right, bottom)
-                                }, obj.fillArgb)
-                                obj.overlayText.forEach { drawText(canvas, it) }
-                            }
-                            is TextEditObject -> drawText(canvas, obj)
-                            is SignatureEditObject -> drawSignature(canvas, obj)
-                        }
-                    }
+                    .forEach { obj -> painter.draw(canvas, obj) }
 
                 canvas.restore()
                 out.finishPage(outPage)
@@ -107,63 +89,5 @@ class PdfExporter(
             out.close()
         }
         return targetUri
-    }
-
-    private fun drawFilledRect(canvas: Canvas, r: RectF, argb: Int) {
-        canvas.drawRect(r, Paint().apply { color = argb; style = Paint.Style.FILL })
-    }
-
-    private fun drawText(canvas: Canvas, t: TextEditObject) {
-        if (t.text.isEmpty()) return
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = t.colorArgb
-            textSize = t.fontSizePt
-            textAlign = when (t.alignment) {
-                TextEditObject.TextAlign.LEFT -> Paint.Align.LEFT
-                TextEditObject.TextAlign.CENTER -> Paint.Align.CENTER
-                TextEditObject.TextAlign.RIGHT -> Paint.Align.RIGHT
-            }
-        }
-        val r = t.rectPt
-        val x = when (t.alignment) {
-            TextEditObject.TextAlign.LEFT -> r.left
-            TextEditObject.TextAlign.CENTER -> (r.left + r.right) / 2f
-            TextEditObject.TextAlign.RIGHT -> r.right
-        }
-        canvas.save()
-        if (t.rotationDeg != 0f) {
-            canvas.rotate(t.rotationDeg, r.left, r.top)
-        }
-        // Baseline ≈ top + ascent.
-        canvas.drawText(t.text, x, r.top - paint.ascent(), paint)
-        canvas.restore()
-    }
-
-    private val signatureTypefaces = HashMap<Int, Typeface>()
-
-    private fun signatureFontRes(style: SignatureEditObject.SignatureStyle): Int =
-        when (style) {
-            SignatureEditObject.SignatureStyle.ELEGANT_CURSIVE -> R.font.great_vibes
-            SignatureEditObject.SignatureStyle.BOLD_HANDWRITTEN -> R.font.pacifico
-            SignatureEditObject.SignatureStyle.CLEAN_FORMAL_SCRIPT ->
-                R.font.pinyon_script
-        }
-
-    private fun drawSignature(canvas: Canvas, s: SignatureEditObject) {
-        if (s.typedName.isEmpty()) return
-        val r = s.rectPt
-        val fontRes = signatureFontRes(s.style)
-        val tf = signatureTypefaces.getOrPut(fontRes) {
-            ResourcesCompat.getFont(context, fontRes) ?: Typeface.DEFAULT
-        }
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = s.colorArgb
-            typeface = tf
-            textSize = r.height.coerceIn(8f, 200f) * 0.8f
-        }
-        canvas.save()
-        if (s.rotationDeg != 0f) canvas.rotate(s.rotationDeg, r.left, r.top)
-        canvas.drawText(s.typedName, r.left, r.top - paint.ascent(), paint)
-        canvas.restore()
     }
 }

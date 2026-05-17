@@ -1,90 +1,75 @@
 package org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.EditObjectPainter
 
 /**
- * Draws edit objects in content space (renderScale px per PDF point). The
- * parent applies zoom/pan via graphicsLayer, so this layer always matches the
- * page image. Drag moves the selected object; deltas are converted back to PDF
- * points so geometry stays authoritative.
+ * Purely visual. Draws every edit object through the SAME [EditObjectPainter]
+ * the exporter uses, so the on-screen preview is pixel-faithful to the exported
+ * PDF (fixes the old "signature/font size doesn't show" bugs — the previous
+ * layer drew a fixed Compose label instead).
+ *
+ * All input (select / move / resize / pan / zoom) is handled by the single
+ * gesture handler in ViewerScreen — this layer never consumes pointers.
+ *
+ * The parent content Box is laid out at exactly `pageWidthPt * scalePxPerPt`
+ * pixels, so 1 canvas px == 1 pt * [scalePxPerPt]. We scale the native canvas
+ * by that factor and the painter then works in pure PDF points.
  */
 @Composable
 fun EditObjectsLayer(
     state: PdfViewerState,
-    contentScalePxPerPt: Float,
-    densityPxPerDp: Float,
+    scalePxPerPt: Float,
+    handleRadiusPx: Float,
 ) {
-    fun Float.pt2dp(): Dp = (this * contentScalePxPerPt / densityPxPerDp).dp
+    val context = LocalContext.current
+    val painter = remember(context) { EditObjectPainter(context) }
+    val accent = Color(0xFF1F6FEB)
 
-    Box(Modifier.fillMaxSize()) {
-        state.overlay.forEach { obj ->
-            val r = obj.rectPt
-            val isSel = obj.id == state.selectedId
-            val isCover = obj is CoverReplaceObject
-            val label = when (obj) {
-                is TextEditObject -> obj.text.ifEmpty { "text" }
-                is SignatureEditObject -> obj.typedName.ifEmpty { "signature" }
-                is CoverReplaceObject -> ""
-                else -> "object"
-            }
-            val fill = when {
-                obj is CoverReplaceObject -> Color(obj.fillArgb)
-                isSel -> Color(0x223366FF)
-                else -> Color.Transparent
-            }
-            Box(
-                modifier = Modifier
-                    .offset(x = r.left.pt2dp(), y = r.top.pt2dp())
-                    .size(
-                        width = (r.right - r.left).pt2dp(),
-                        height = (r.bottom - r.top).pt2dp(),
-                    )
-                    .background(fill)
-                    .border(
-                        width = if (isSel) 2.dp else 1.dp,
-                        color = if (isSel) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color(0x55888888)
-                        },
-                    )
-                    .pointerInput(obj.id, contentScalePxPerPt) {
-                        detectDragGestures(
-                            onDragStart = { state.selectedId = obj.id },
-                        ) { change, drag ->
-                            change.consume()
-                            // pointer px in content space -> pt (/renderScale)
-                            val dxPt = drag.x / contentScalePxPerPt
-                            val dyPt = drag.y / contentScalePxPerPt
-                            state.moveSelectedByPdf(dxPt, dyPt)
-                        }
-                    },
-            ) {
-                if (label.isNotEmpty()) {
-                    Text(
-                        text = label,
-                        color = Color(0xFF111111),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+    Canvas(Modifier.fillMaxSize()) {
+        drawIntoCanvas { canvas ->
+            val nc = canvas.nativeCanvas
+            state.overlay
+                .sortedBy { it.zOrder }
+                .forEach { obj ->
+                    nc.save()
+                    nc.scale(scalePxPerPt, scalePxPerPt)
+                    painter.draw(nc, obj)
+                    nc.restore()
                 }
-            }
+        }
+
+        // Selection chrome in pixel space.
+        val sel = state.overlay.firstOrNull { it.id == state.selectedId }
+        if (sel != null) {
+            val r = sel.rectPt
+            val left = r.left * scalePxPerPt
+            val top = r.top * scalePxPerPt
+            val w = (r.right - r.left) * scalePxPerPt
+            val h = (r.bottom - r.top) * scalePxPerPt
+            drawRect(
+                color = accent,
+                topLeft = Offset(left, top),
+                size = Size(w, h),
+                style = Stroke(width = 2f),
+            )
+            // Bottom-right resize handle.
+            drawCircle(
+                color = accent,
+                radius = handleRadiusPx,
+                center = Offset(left + w, top + h),
+            )
         }
     }
 }

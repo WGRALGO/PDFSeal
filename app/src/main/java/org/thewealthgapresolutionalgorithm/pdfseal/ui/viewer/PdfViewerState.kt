@@ -10,6 +10,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfCoordinateMapper
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.EditableCopyBuilder
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.PanClamp
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
@@ -24,6 +25,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrPageResult
  * the edit overlay, so they stay aligned automatically.
  */
 class PdfViewerState(private val engine: PdfEngine) {
+
 
     var session by mutableStateOf<PdfDocumentSession?>(null)
         private set
@@ -84,6 +86,11 @@ class PdfViewerState(private val engine: PdfEngine) {
         busy = true
         try {
             pageSizePt = s.pageSizePt(pageIndex)
+            // Adaptive: keep the rendered bitmap crisp when zoomed without
+            // wasting memory on huge pages. Target ~2200 px on the long edge.
+            val longEdgePt = maxOf(pageSizePt.width, pageSizePt.height)
+                .coerceAtLeast(1f)
+            renderScale = (2200f / longEdgePt).coerceIn(2f, 4f)
             pageBitmap = engine.renderPage(s, pageIndex, renderScale)
             refreshOverlay()
         } catch (e: Exception) {
@@ -177,6 +184,42 @@ class PdfViewerState(private val engine: PdfEngine) {
         if (idx >= 0) overlay[idx] = obj
     }
 
+    /** Resize the selected object by a PDF-point delta on its bottom-right. */
+    fun resizeSelectedByPdf(dxPt: Float, dyPt: Float) {
+        val id = selectedId ?: return
+        val obj = overlay.firstOrNull { it.id == id } ?: return
+        val r = obj.rectPt
+        val minSide = 8f
+        obj.rectPt = PdfRectF(
+            r.left,
+            r.top,
+            (r.right + dxPt).coerceAtLeast(r.left + minSide),
+            (r.bottom + dyPt).coerceAtLeast(r.top + minSide),
+        )
+        session?.hasUnsavedEdits = true
+        val idx = overlay.indexOfFirst { it.id == id }
+        if (idx >= 0) overlay[idx] = obj
+    }
+
+    /** Topmost object id whose point-space rect contains (xPt,yPt), or null. */
+    fun hitTest(xPt: Float, yPt: Float): String? =
+        overlay
+            .sortedByDescending { it.zOrder }
+            .firstOrNull { o ->
+                val r = o.rectPt.normalized()
+                xPt >= r.left && xPt <= r.right &&
+                    yPt >= r.top && yPt <= r.bottom
+            }
+            ?.id
+
+    /** True if (xPt,yPt) is on the selected object's bottom-right handle. */
+    fun isOnResizeHandle(xPt: Float, yPt: Float, tolPt: Float): Boolean {
+        val id = selectedId ?: return false
+        val r = overlay.firstOrNull { it.id == id }?.rectPt ?: return false
+        return kotlin.math.abs(xPt - r.right) <= tolPt &&
+            kotlin.math.abs(yPt - r.bottom) <= tolPt
+    }
+
     fun deleteSelected() {
         val id = selectedId ?: return
         val obj = session?.editsFor(pageIndex)?.firstOrNull { it.id == id } ?: return
@@ -222,6 +265,20 @@ class PdfViewerState(private val engine: PdfEngine) {
         } finally {
             busy = false
         }
+    }
+
+    fun selectedObject(): PdfEditObject? =
+        overlay.firstOrNull { it.id == selectedId }
+
+    /**
+     * Clamp pan so the page can never be flung fully off-screen — at least
+     * 20% of the smaller of (page, viewport) stays visible on each axis.
+     * Call after changing zoom/pan from the gesture handler, passing the
+     * unscaled content size and the viewport size in px.
+     */
+    fun clampPan(contentWpx: Float, contentHpx: Float, vpW: Float, vpH: Float) {
+        panX = PanClamp.clampAxis(panX, contentWpx * zoom, vpW)
+        panY = PanClamp.clampAxis(panY, contentHpx * zoom, vpH)
     }
 
     fun selectedTextObject(): TextEditObject? =

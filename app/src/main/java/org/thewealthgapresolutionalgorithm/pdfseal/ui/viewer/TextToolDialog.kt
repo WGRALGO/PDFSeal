@@ -49,6 +49,7 @@ fun TextToolDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = text.isNotBlank(),
                 onClick = { if (text.isNotBlank()) onConfirm(text, size) },
             ) { Text("Add") }
         },

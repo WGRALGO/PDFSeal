@@ -89,6 +89,7 @@ fun SignatureDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = name.isNotBlank(),
                 onClick = { if (name.isNotBlank()) onConfirm(name, style) },
             ) { Text("Add") }
         },

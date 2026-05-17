@@ -4,8 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -21,6 +19,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.ui.screens.AboutScreen
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.screens.FirstRunScreen
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.screens.HomeScreen
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.screens.ViewerScreen
+import org.thewealthgapresolutionalgorithm.pdfseal.ui.theme.PdfSealTheme
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 
 class MainActivity : ComponentActivity() {
@@ -29,7 +28,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            PdfSealTheme {
                 val engine = remember { PdfEngine(applicationContext) }
                 val viewerState = remember { PdfViewerState(engine) }
                 val appPrefs = remember { AppPrefs(applicationContext) }

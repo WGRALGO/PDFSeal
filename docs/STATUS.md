@@ -5,7 +5,8 @@ for design see [ARCHITECTURE.md](ARCHITECTURE.md); for the release process see
 [RELEASING.md](RELEASING.md) (dual-APK arm64-v8a + universal flow with build
 provenance).
 
-_Last updated: 2026-05-16 — current `versionName` 1.0.0, `versionCode` 10._
+_Last updated: 2026-05-16 — current `versionName` 1.0.1, `versionCode` 11
+(local build only; not publicly released)._
 
 ## Ownership
 
@@ -19,12 +20,32 @@ line. There is intentionally **no in-app Credits screen**.
 
 ## Released
 
-- **GitHub Release v1.0.0** — first stable GitHub sideload release
-  (arm64-v8a + universal signed APKs + SHA-256 + signing-cert fingerprint).
-  Built per [RELEASING.md](RELEASING.md) §4–§7 (`clean :app:assembleRelease
-  -PabiSplit`, provenance-verified). See [TESTING.md](TESTING.md) for the
-  release test matrix.
-- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0`.
+- **v1.0.0 was WITHDRAWN** — see [RELEASE_WITHDRAWAL.md](../RELEASE_WITHDRAWAL.md).
+  Real-device testing showed the markup editor was unusable. GitHub Release
+  v1.0.0 was deleted; tag replaced with `v1.0.0-withdrawn`. Repo stays public.
+- Remaining published releases: `v0.5.1`, `v0.5.0`, `v0.4.0` (untouched).
+- Tags: `v0.1.0`, `v0.4.0`, `v0.5.1`, `v1.0.0-withdrawn`.
+
+## v1.0.1 — viewer/editor UX overhaul (local build, NOT released)
+
+Fixes the defects that caused the v1.0.0 withdrawal:
+
+- **WYSIWYG overlay**: on-screen text/signature now drawn through the same
+  `EditObjectPainter` the exporter uses — preview matches export exactly.
+  Fixes "signature doesn't work" and "font size doesn't work".
+- **Unified gesture handler**: tap-to-select, drag-to-move, corner-resize,
+  pinch-zoom/pan with off-screen clamp — no more gesture conflict. Fixes
+  "can't move text once placed".
+- **Toolbar redesign**: stable, horizontally scrollable grouped action bar;
+  selection actions (Edit/Delete/Done) on a separate contextual row so the
+  main bar never reflows. Fixes "buttons flex/move like HTML".
+- **Go-to-page** dialog (tap the page indicator) + thumbnails navigator.
+- **Brand theme** (`ui/theme`): explicit gold-seal light/dark schemes,
+  typography, shapes — replaces bare default Material.
+- Adaptive `renderScale` (crisp when zoomed); `PanClamp` unit-tested.
+
+No tag, no GitHub release — `RELEASE_WITHDRAWAL.md` gate still applies until
+the DEVICE matrix passes on real hardware.
 
 ## Feature status
 
