@@ -5,7 +5,7 @@ for design see [ARCHITECTURE.md](ARCHITECTURE.md); for the release process see
 [RELEASING.md](RELEASING.md) (dual-APK arm64-v8a + universal flow with build
 provenance).
 
-_Last updated: 2026-05-16 — current `versionName` 1.0.1, `versionCode` 11
+_Last updated: 2026-05-17 — current `versionName` 1.0.2, `versionCode` 12
 (local build only; not publicly released)._
 
 ## Ownership
@@ -44,8 +44,30 @@ Fixes the defects that caused the v1.0.0 withdrawal:
   typography, shapes — replaces bare default Material.
 - Adaptive `renderScale` (crisp when zoomed); `PanClamp` unit-tested.
 
+## v1.0.2 — on-device verified (local build, NOT released)
+
+Tested on a real Amazon Fire HD 10 (Fire OS) tablet via ADB. v1.0.1's
+native-canvas overlay drew nothing on device; rewritten and re-verified:
+
+- Overlay now Compose-`Text` in PDF-point space, sized to match the
+  exporter — added text renders at the chosen font size; selection box
+  + bottom-right resize handle draw; drag-to-move confirmed working.
+- `ACTION_VIEW` intent now handled (cold + `onNewIntent`): "Open with
+  PDFSeal" from a file app opens the viewer instead of Home.
+- Bottom toolbar `navigationBarsPadding` — no longer occluded by the
+  system navigation bar (edge-to-edge).
+
+Device-confirmed: open via recent files, Add Text @58pt renders large,
+move, selection chrome, GoToPage dialog (validated 1–N), scrollable
+non-reflowing toolbar with contextual Edit/Delete/Done row, gold-seal
+theme in light mode.
+
+Still pending full sign-off: signature/cover/OCR/editable-copy/export
+round-trip rows of the device matrix, and SAF-pick path on Fire OS
+(scripted-input limitation during this session, not an app defect).
+
 No tag, no GitHub release — `RELEASE_WITHDRAWAL.md` gate still applies until
-the DEVICE matrix passes on real hardware.
+the full DEVICE matrix passes on real hardware.
 
 ## Feature status
 
