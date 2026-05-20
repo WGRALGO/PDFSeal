@@ -115,6 +115,11 @@ class PdfViewerState(private val engine: PdfEngine) {
     fun refreshOverlay() {
         overlay.clear()
         session?.editsFor(pageIndex)?.let { overlay.addAll(it) }
+        android.util.Log.d(
+            "PdfSeal",
+            "refreshOverlay page=$pageIndex size=${overlay.size} " +
+                "rects=${overlay.map { it.rectPt }}",
+        )
     }
 
     suspend fun goTo(page: Int) {
@@ -144,15 +149,31 @@ class PdfViewerState(private val engine: PdfEngine) {
         selectedId = obj.id
     }
 
+    /**
+     * Auto-fit on create. We measure the typed name in the chosen TTF at the
+     * same `textSize = rectHeight * 0.8` that EditObjectPainter uses for
+     * export, so the box width matches what the user sees. Resizing then
+     * scales the whole signature proportionally — the locked aspect ratio
+     * is (textW + 2*pad) / defaultHeightPt.
+     */
     fun addSignatureCentered(
+        ctx: android.content.Context,
         name: String,
         style: SignatureEditObject.SignatureStyle,
     ) {
         val s = session ?: return
         val w = pageSizePt.width
         val h = pageSizePt.height
-        val boxW = (w * 0.4f).coerceAtLeast(120f)
-        val boxH = (boxW * 0.28f).coerceAtLeast(28f)
+        val defaultH = 60f
+        val pad = 12f
+        val textW = measureSignatureWidthPt(ctx, name, style, defaultH)
+        val boxW = (textW + pad * 2f).coerceIn(80f, w * 0.9f)
+        val boxH = defaultH
+        android.util.Log.d(
+            "PdfSeal",
+            "addSig name=$name style=$style page=($w,$h) textW=$textW " +
+                "boxW=$boxW boxH=$boxH pageRect=$pageSizePt",
+        )
         val obj = SignatureEditObject(
             pageIndex = pageIndex,
             rectPt = PdfRectF(
@@ -165,6 +186,23 @@ class PdfViewerState(private val engine: PdfEngine) {
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
+    }
+
+    fun measureSignatureWidthPt(
+        ctx: android.content.Context,
+        name: String,
+        style: SignatureEditObject.SignatureStyle,
+        rectHeightPt: Float,
+    ): Float {
+        val tf = androidx.core.content.res.ResourcesCompat
+            .getFont(ctx, SignatureFonts.fontRes(style))
+            ?: android.graphics.Typeface.DEFAULT
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            .apply {
+                typeface = tf
+                textSize = rectHeightPt * 0.8f
+            }
+        return p.measureText(name)
     }
 
     /** Cover & Replace — visual cover only, NOT secure redaction. */
@@ -185,33 +223,51 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     fun moveSelectedByPdf(dxPt: Float, dyPt: Float) {
         val id = selectedId ?: return
-        val obj = overlay.firstOrNull { it.id == id } ?: return
+        val idx = overlay.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            ?: return
+        val obj = overlay[idx]
         val r = obj.rectPt
-        obj.rectPt = PdfRectF(
+        val nr = PdfRectF(
             r.left + dxPt, r.top + dyPt, r.right + dxPt, r.bottom + dyPt,
         )
-        session?.hasUnsavedEdits = true
-        // Trigger recomposition by replacing the list element.
-        val idx = overlay.indexOfFirst { it.id == id }
-        if (idx >= 0) overlay[idx] = obj
+        applyRect(idx, id, nr)
     }
 
     /** Resize the selected object by a PDF-point delta on its bottom-right. */
     fun resizeSelectedByPdf(dxPt: Float, dyPt: Float) {
         val id = selectedId ?: return
-        val obj = overlay.firstOrNull { it.id == id } ?: return
+        val idx = overlay.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            ?: return
+        val obj = overlay[idx]
         val r = obj.rectPt
         val minSide = 8f
-        obj.rectPt = PdfRectF(
+        val nr = PdfRectF(
             r.left,
             r.top,
             (r.right + dxPt).coerceAtLeast(r.left + minSide),
             (r.bottom + dyPt).coerceAtLeast(r.top + minSide),
         )
-        session?.hasUnsavedEdits = true
-        val idx = overlay.indexOfFirst { it.id == id }
-        if (idx >= 0) overlay[idx] = obj
+        applyRect(idx, id, nr)
     }
+
+    /**
+     * Write [nr] into the overlay AND the session. We `.copy(rectPt = nr)`
+     * the data-class subclass so Compose's SnapshotStateList sees a new
+     * instance and recomposes — assigning the same reference back was the
+     * "signature stuck" bug.
+     */
+    private fun applyRect(idx: Int, id: String, nr: PdfRectF) {
+        val updated = overlay[idx].withRect(nr)
+        overlay[idx] = updated
+        session?.replaceEdit(id, updated)
+    }
+
+    private fun PdfEditObject.withRect(nr: PdfRectF): PdfEditObject =
+        when (this) {
+            is SignatureEditObject -> copy(rectPt = nr)
+            is TextEditObject -> copy(rectPt = nr)
+            is CoverReplaceObject -> copy(rectPt = nr)
+        }
 
     /** Topmost object id whose point-space rect contains (xPt,yPt), or null. */
     fun hitTest(xPt: Float, yPt: Float): String? =
@@ -230,6 +286,88 @@ class PdfViewerState(private val engine: PdfEngine) {
         val r = overlay.firstOrNull { it.id == id }?.rectPt ?: return false
         return kotlin.math.abs(xPt - r.right) <= tolPt &&
             kotlin.math.abs(yPt - r.bottom) <= tolPt
+    }
+
+    enum class HandleCorner { NW, NE, SW, SE }
+
+    /** Which corner handle of the selected object is at (xPt,yPt), if any. */
+    fun hitTestHandle(xPt: Float, yPt: Float, tolPt: Float): HandleCorner? {
+        val id = selectedId ?: return null
+        val r = overlay.firstOrNull { it.id == id }?.rectPt?.normalized()
+            ?: return null
+        fun near(ax: Float, ay: Float) =
+            kotlin.math.abs(xPt - ax) <= tolPt &&
+                kotlin.math.abs(yPt - ay) <= tolPt
+        return when {
+            near(r.left, r.top) -> HandleCorner.NW
+            near(r.right, r.top) -> HandleCorner.NE
+            near(r.left, r.bottom) -> HandleCorner.SW
+            near(r.right, r.bottom) -> HandleCorner.SE
+            else -> null
+        }
+    }
+
+    /**
+     * Aspect-locked resize. The corner *opposite* [corner] stays anchored;
+     * the dragged corner follows the pointer. Width/height ratio is taken
+     * from [startRect] (captured at gesture start), so the font never
+     * visually stretches even across many incremental events.
+     *
+     * The pointer's dominant axis (width vs height, normalised by the locked
+     * ratio) wins, and the other axis derives from it. That keeps movement
+     * responsive instead of jittering between the two.
+     */
+    fun resizeSelectedByCorner(
+        corner: HandleCorner,
+        startRect: PdfRectF,
+        pointerXPt: Float,
+        pointerYPt: Float,
+        minSidePt: Float = 8f,
+    ) {
+        val id = selectedId ?: return
+        val idx = overlay.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            ?: return
+        val k = startRect.width / startRect.height
+        val ax = if (corner == HandleCorner.NW || corner == HandleCorner.SW) {
+            startRect.right
+        } else startRect.left
+        val ay = if (corner == HandleCorner.NW || corner == HandleCorner.NE) {
+            startRect.bottom
+        } else startRect.top
+        val rawW = kotlin.math.abs(pointerXPt - ax)
+        val rawH = kotlin.math.abs(pointerYPt - ay)
+        val newW: Float
+        val newH: Float
+        if (rawW / k >= rawH) {
+            newW = rawW.coerceAtLeast(minSidePt); newH = newW / k
+        } else {
+            newH = rawH.coerceAtLeast(minSidePt / k); newW = newH * k
+        }
+        val nr = when (corner) {
+            HandleCorner.NW -> PdfRectF(ax - newW, ay - newH, ax, ay)
+            HandleCorner.NE -> PdfRectF(ax, ay - newH, ax + newW, ay)
+            HandleCorner.SW -> PdfRectF(ax - newW, ay, ax, ay + newH)
+            HandleCorner.SE -> PdfRectF(ax, ay, ax + newW, ay + newH)
+        }
+        applyRect(idx, id, nr)
+    }
+
+    /** Pinch-zoom scale applied to the selected object, around its centre. */
+    fun scaleSelectedAroundCenter(factor: Float, minSidePt: Float = 8f) {
+        if (factor == 1f) return
+        val id = selectedId ?: return
+        val idx = overlay.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            ?: return
+        val r = overlay[idx].rectPt.normalized()
+        val cx = (r.left + r.right) / 2f
+        val cy = (r.top + r.bottom) / 2f
+        val newW = (r.width * factor).coerceAtLeast(minSidePt)
+        val newH = (r.height * factor).coerceAtLeast(minSidePt)
+        val nr = PdfRectF(
+            cx - newW / 2f, cy - newH / 2f,
+            cx + newW / 2f, cy + newH / 2f,
+        )
+        applyRect(idx, id, nr)
     }
 
     fun deleteSelected() {

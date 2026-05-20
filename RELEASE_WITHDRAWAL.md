@@ -10,8 +10,13 @@ Real-device use showed the markup editor is not acceptable for serious work:
 
 - **OCR does nothing useful** — the recognised text is not actually usable.
 - **Placed text cannot be deleted.**
-- **The typed signature cannot be positioned or resized.**
-- Overall, the editor cannot do real work.
+- ~~**The typed signature cannot be positioned or resized.**~~ **Fixed
+  2026-05-20** — the typed signature now auto-fits to the chosen font,
+  shows four corner handles, and moves/resizes correctly on a real tablet
+  (debug build). The session model is updated alongside the on-screen
+  overlay so the signature survives export. No new APK has been published;
+  the fix lives in the source tree only.
+- Overall, the editor still cannot do real work end-to-end.
 
 A v1.0.3 fix did resolve a separate defect that had stranded the viewer on a
 permanent "Loading…" (a Compose `LaunchedEffect` self-cancel), and an
@@ -60,5 +65,6 @@ Before any future release, PDFSeal must pass real-device testing for:
 - Testing install/uninstall/reinstall behavior
 
 Status: **withdrawn. Not ready for public use.** The editor must do real
-work (usable OCR result, delete placed text, position/resize the signature,
-and the rest of the list above) before any future release.
+work (usable OCR result, delete placed text, and the rest of the list
+above) before any future release. Signature place/resize is no longer a
+blocker as of 2026-05-20 — see the "Fixed 2026-05-20" note above.

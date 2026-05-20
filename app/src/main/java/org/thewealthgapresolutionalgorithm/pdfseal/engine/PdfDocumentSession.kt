@@ -95,6 +95,19 @@ class PdfDocumentSession internal constructor(
         hasUnsavedEdits = true
     }
 
+    /**
+     * Replace the edit with [id] by [replacement] (same id, new geometry/state).
+     * Used after move/resize so the session matches the viewer's overlay copy.
+     */
+    fun replaceEdit(id: String, replacement: PdfEditObject) {
+        val list = edits[replacement.pageIndex] ?: return
+        val idx = list.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            list[idx] = replacement
+            hasUnsavedEdits = true
+        }
+    }
+
     internal fun close() {
         runCatching { document.destroy() }
         runCatching { tempFile?.delete() }

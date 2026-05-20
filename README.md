@@ -1,10 +1,12 @@
 # PDFSeal
 
-⚠️ Release withdrawn.
+⚠️ Release withdrawn. Fix-in-progress — features are being repaired one by one.
 
 PDFSeal has been withdrawn after real-device testing. The APK is not ready for public use and should not be downloaded, installed, shared, mirrored, or relied on.
 
-Real-device use showed the markup editor is not usable for serious work: OCR does nothing useful, placed text cannot be deleted, and the typed signature cannot be positioned or resized. An earlier automated open → edit → export → reopen check only confirmed that an export file is produced and the original file is left unchanged — it did **not** prove the editing tools are usable. They are not.
+Real-device use showed the markup editor is not usable for serious work: OCR does nothing useful, placed text cannot be deleted, and (previously) the typed signature could not be positioned or resized. An earlier automated open → edit → export → reopen check only confirmed that an export file is produced and the original file is left unchanged — it did **not** prove the editing tools are usable. They are not, yet.
+
+**Update 2026-05-20 — typed signature now places, moves, and resizes correctly on a real tablet.** The fix is in the source tree; no new APK has been published. OCR usefulness and deletion of placed text remain unresolved and the overall withdrawal still stands until every feature passes real-device testing.
 
 The source code remains available because PDFSeal is an open-source project under active review and repair.
 
@@ -75,12 +77,18 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Release withdrawn.** PDFSeal is in pre-release development. No stable APK
-> is available. Real-device testing showed the markup editor is not acceptable
-> for public use: OCR does nothing useful, placed text cannot be deleted, and
-> the typed signature cannot be positioned or resized. An automated
-> export-round-trip check passed (an edited copy is produced and the original
-> is unchanged) but did not prove the editing tools usable — they are not.
+> **Release withdrawn — fixes underway.** PDFSeal is in pre-release
+> development. No stable APK is available. Real-device testing showed the
+> markup editor was not acceptable for public use: OCR does nothing useful,
+> placed text cannot be deleted, and the typed signature could not be
+> positioned or resized. An automated export-round-trip check passed (an
+> edited copy is produced and the original is unchanged) but did not prove
+> the editing tools usable — they were not.
+>
+> **2026-05-20 update:** the typed signature place/move/resize fix is in the
+> source tree and verified on a real tablet (debug build). OCR usefulness
+> and deletion of placed text are still unresolved. The withdrawal remains
+> in effect until every feature passes real-device testing.
 > See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for the withdrawal notice
 > and the device tests that must pass before any future release,
 > [docs/TESTING.md](docs/TESTING.md) for the test matrix,

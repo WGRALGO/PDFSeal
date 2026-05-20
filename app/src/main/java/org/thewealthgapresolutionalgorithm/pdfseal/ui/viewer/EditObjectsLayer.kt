@@ -43,9 +43,13 @@ fun EditObjectsLayer(
     fun Float.ptPx(): Float = this * scalePxPerPt
 
     Box(Modifier.fillMaxSize()) {
-        state.overlay
-            .sortedBy { it.zOrder }
-            .forEach { obj ->
+        val items = state.overlay.sortedBy { it.zOrder }
+        android.util.Log.d(
+            "PdfSeal",
+            "EditObjectsLayer render scalePxPerPt=$scalePxPerPt " +
+                "density=$densityPxPerDp items=${items.size}",
+        )
+        items.forEach { obj ->
                 val r = obj.rectPt.normalized()
                 val isSel = obj.id == state.selectedId
                 Box(
@@ -120,15 +124,36 @@ fun EditObjectsLayer(
                             }
                     }
 
-                    // Bottom-right resize handle on the selected object.
+                    // Four corner handles on the selected object — drag any
+                    // corner to resize with aspect locked (see
+                    // PdfViewerState.resizeSelectedByCorner).
                     if (isSel) {
+                        val wDp = (r.right - r.left).pt2dp()
+                        val hDp = (r.bottom - r.top).pt2dp()
+                        val handle = 18.dp
+                        val off = 9.dp
                         Box(
                             Modifier
-                                .offset(
-                                    x = (r.right - r.left).pt2dp() - 9.dp,
-                                    y = (r.bottom - r.top).pt2dp() - 9.dp,
-                                )
-                                .size(18.dp)
+                                .offset(x = -off, y = -off)
+                                .size(handle)
+                                .background(Color(0xFF1F6FEB)),
+                        )
+                        Box(
+                            Modifier
+                                .offset(x = wDp - off, y = -off)
+                                .size(handle)
+                                .background(Color(0xFF1F6FEB)),
+                        )
+                        Box(
+                            Modifier
+                                .offset(x = -off, y = hDp - off)
+                                .size(handle)
+                                .background(Color(0xFF1F6FEB)),
+                        )
+                        Box(
+                            Modifier
+                                .offset(x = wDp - off, y = hDp - off)
+                                .size(handle)
                                 .background(Color(0xFF1F6FEB)),
                         )
                     }

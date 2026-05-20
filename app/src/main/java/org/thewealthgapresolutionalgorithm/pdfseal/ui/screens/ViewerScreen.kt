@@ -6,7 +6,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -54,6 +57,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -63,6 +67,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.GoToPageDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.OcrPanel
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesDialog
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.ThumbnailsDialog
@@ -88,6 +93,7 @@ fun ViewerScreen(
     var showExportWarning by remember { mutableStateOf(false) }
     var showCoverWarning by remember { mutableStateOf(false) }
     val density = LocalDensity.current.density
+    val context = LocalContext.current
     var viewport by remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(state.lastMessage) {
@@ -222,7 +228,7 @@ fun ViewerScreen(
             }
         },
     ) { inner ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
@@ -231,12 +237,32 @@ fun ViewerScreen(
         ) {
             val bmp = state.pageBitmap
             if (bmp != null) {
-                val scale = state.renderScale
-                val wDp = (bmp.width / density).dp
-                val hDp = (bmp.height / density).dp
+                // Fit the page bitmap into the viewport while preserving the
+                // bitmap's aspect ratio. The previous `.size(wDp,hDp)` forced
+                // the bitmap's full native dp size, which exceeded the
+                // viewport — Compose then letterboxed the Image inside the
+                // oversized Box, but EditObjectsLayer kept placing children
+                // in Box-coords, so they fell outside the visible page
+                // (signature was invisible).
+                val pageAspect = bmp.width.toFloat() / bmp.height
+                val viewportAspect = maxWidth / maxHeight
+                val fitModifier = if (viewportAspect < pageAspect) {
+                    Modifier.fillMaxWidth().aspectRatio(pageAspect)
+                } else {
+                    Modifier.fillMaxHeight().aspectRatio(pageAspect)
+                }
+                // Actual on-screen dp/pt for this rendered page — drives both
+                // EditObjectsLayer positioning and gesture coord mapping so
+                // they stay aligned with what the user sees.
+                val pageW = state.pageSizePt.width.coerceAtLeast(1f)
+                val effectiveBoxDpWidth = if (viewportAspect < pageAspect) {
+                    maxWidth.value
+                } else {
+                    maxHeight.value * pageAspect
+                }
+                val scale = effectiveBoxDpWidth * density / pageW
                 Box(
-                    modifier = Modifier
-                        .size(wDp, hDp)
+                    modifier = fitModifier
                         .graphicsLayer(
                             scaleX = state.zoom,
                             scaleY = state.zoom,
@@ -250,11 +276,17 @@ fun ViewerScreen(
                                     awaitFirstDown(requireUnconsumed = false)
                                 val sx = down.position.x / scale
                                 val sy = down.position.y / scale
-                                val mode = when {
+                                var corner: PdfViewerState.HandleCorner? = null
+                                var startRect: PdfRectF? = null
+                                var mode: GestureMode = when {
                                     state.selectedId != null &&
-                                        state.isOnResizeHandle(
+                                        state.hitTestHandle(
                                             sx, sy, handleTolPt,
-                                        ) -> GestureMode.RESIZE
+                                        ).also { corner = it } != null -> {
+                                        startRect = state.selectedObject()
+                                            ?.rectPt?.normalized()
+                                        GestureMode.RESIZE
+                                    }
                                     else -> {
                                         val hit = state.hitTest(sx, sy)
                                         if (hit != null) {
@@ -266,36 +298,70 @@ fun ViewerScreen(
                                 var moved = false
                                 do {
                                     val event = awaitPointerEvent()
-                                    if (mode == GestureMode.PAN) {
-                                        val z = event.calculateZoom()
-                                        val p = event.calculatePan()
-                                        if (z != 1f ||
-                                            p.x != 0f || p.y != 0f) {
-                                            moved = true
-                                            state.zoom = (state.zoom * z)
-                                                .coerceIn(0.5f, 6f)
-                                            state.panX += p.x
-                                            state.panY += p.y
-                                            state.clampPan(
-                                                size.width.toFloat(),
-                                                size.height.toFloat(),
-                                                viewport.width.toFloat(),
-                                                viewport.height.toFloat(),
-                                            )
-                                        }
-                                    } else {
-                                        val d = event.calculatePan()
-                                        if (d.x != 0f || d.y != 0f) {
-                                            moved = true
-                                            val dxPt = d.x / scale
-                                            val dyPt = d.y / scale
-                                            if (mode == GestureMode.RESIZE) {
-                                                state.resizeSelectedByPdf(
-                                                    dxPt, dyPt,
+                                    val pressedCount =
+                                        event.changes.count { it.pressed }
+                                    // Two-finger pinch on a selected object
+                                    // promotes MOVE to centre-pinch RESIZE.
+                                    // Page zoom is suspended while we own the
+                                    // selection.
+                                    if (mode == GestureMode.MOVE &&
+                                        pressedCount >= 2 &&
+                                        state.selectedId != null) {
+                                        mode = GestureMode.RESIZE
+                                        corner = null
+                                        startRect = null
+                                    }
+                                    when {
+                                        mode == GestureMode.PAN -> {
+                                            val z = event.calculateZoom()
+                                            val p = event.calculatePan()
+                                            if (z != 1f ||
+                                                p.x != 0f || p.y != 0f) {
+                                                moved = true
+                                                state.zoom =
+                                                    (state.zoom * z)
+                                                        .coerceIn(0.5f, 6f)
+                                                state.panX += p.x
+                                                state.panY += p.y
+                                                state.clampPan(
+                                                    size.width.toFloat(),
+                                                    size.height.toFloat(),
+                                                    viewport.width.toFloat(),
+                                                    viewport.height.toFloat(),
                                                 )
-                                            } else {
+                                            }
+                                        }
+                                        mode == GestureMode.RESIZE &&
+                                            corner != null &&
+                                            startRect != null -> {
+                                            val pressed = event.changes
+                                                .firstOrNull { it.pressed }
+                                            if (pressed != null &&
+                                                pressed.positionChanged()) {
+                                                moved = true
+                                                state.resizeSelectedByCorner(
+                                                    corner!!, startRect!!,
+                                                    pressed.position.x / scale,
+                                                    pressed.position.y / scale,
+                                                )
+                                            }
+                                        }
+                                        mode == GestureMode.RESIZE -> {
+                                            val z = event.calculateZoom()
+                                            if (z != 1f) {
+                                                moved = true
+                                                state.scaleSelectedAroundCenter(
+                                                    z,
+                                                )
+                                            }
+                                        }
+                                        else /* MOVE */ -> {
+                                            val d = event.calculatePan()
+                                            if (d.x != 0f || d.y != 0f) {
+                                                moved = true
                                                 state.moveSelectedByPdf(
-                                                    dxPt, dyPt,
+                                                    d.x / scale,
+                                                    d.y / scale,
                                                 )
                                             }
                                         }
@@ -454,7 +520,7 @@ fun ViewerScreen(
         SignatureDialog(
             onDismiss = { showSignatureDialog = false },
             onConfirm = { name, style ->
-                state.addSignatureCentered(name, style)
+                state.addSignatureCentered(context, name, style)
                 showSignatureDialog = false
             },
         )
