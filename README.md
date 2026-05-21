@@ -1,16 +1,23 @@
 # PDFSeal
 
-⚠️ Release withdrawn. Fix-in-progress — features are being repaired one by one.
+🧪 Under active testing — source available, no public APK yet.
 
-PDFSeal has been withdrawn after real-device testing. The APK is not ready for public use and should not be downloaded, installed, shared, mirrored, or relied on.
+PDFSeal is being repaired and tested feature by feature on real hardware. The
+**source code is public** so the work can be reviewed, built, and improved. No
+prebuilt APK is published here; build from source if you want to try it.
 
-Real-device use showed the markup editor is not usable for serious work: OCR does nothing useful, placed text cannot be deleted, and (previously) the typed signature could not be positioned or resized. An earlier automated open → edit → export → reopen check only confirmed that an export file is produced and the original file is left unchanged — it did **not** prove the editing tools are usable. They are not, yet.
+**Status as of 2026-05-20 — fixes verified on a real tablet (debug build):**
 
-**Update 2026-05-20 — typed signature now places, moves, and resizes correctly on a real tablet.** The fix is in the source tree; no new APK has been published. OCR usefulness and deletion of placed text remain unresolved and the overall withdrawal still stands until every feature passes real-device testing.
+- ✅ Typed visual signature places, moves, resizes (and supports black/blue ink)
+- ✅ Offline OCR now returns usable text and reports confidence
+- ✅ Document Search (offline) — index once, find text across pages, jump to a hit
+- ✅ Editable Copy hides the original line instead of double-printing over it
+- ✅ Edit / delete placed text; highlight and strikethrough on a selected box
+- ✅ Add Text with font family, bold, italic
 
-The source code remains available because PDFSeal is an open-source project under active review and repair.
-
-No stable public APK release is currently available.
+Still being validated end-to-end (open → edit → export → reopen elsewhere)
+before any public APK release. Until the full device test matrix passes, treat
+PDFSeal as pre-release: **source available, not yet released.**
 
 ## Project Purpose
 
@@ -77,20 +84,14 @@ These are **not** in the current APK:
 
 ## Current status
 
-> **Release withdrawn — fixes underway.** PDFSeal is in pre-release
-> development. No stable APK is available. Real-device testing showed the
-> markup editor was not acceptable for public use: OCR does nothing useful,
-> placed text cannot be deleted, and the typed signature could not be
-> positioned or resized. An automated export-round-trip check passed (an
-> edited copy is produced and the original is unchanged) but did not prove
-> the editing tools usable — they were not.
->
-> **2026-05-20 update:** the typed signature place/move/resize fix is in the
-> source tree and verified on a real tablet (debug build). OCR usefulness
-> and deletion of placed text are still unresolved. The withdrawal remains
-> in effect until every feature passes real-device testing.
-> See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for the withdrawal notice
-> and the device tests that must pass before any future release,
+> **Under testing — source available, not yet released.** PDFSeal is in
+> pre-release development. No prebuilt APK is published; build from source to
+> try it. As of the 2026-05-20 device pass the signature, OCR, document
+> search, editable copy, text editing, highlight/strikethrough, and font
+> options all work on a real tablet (debug build). The full open → edit →
+> export → reopen-elsewhere matrix is still being validated before any public
+> APK release.
+> See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for history,
 > [docs/TESTING.md](docs/TESTING.md) for the test matrix,
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
 > and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the engine design.
