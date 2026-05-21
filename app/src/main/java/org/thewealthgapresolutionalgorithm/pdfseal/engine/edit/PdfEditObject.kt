@@ -26,10 +26,12 @@ data class TextEditObject(
     override var rotationDeg: Float = 0f,
     override var zOrder: Int = 0,
     var text: String = "",
-    var fontFamily: String = "Helvetica",
+    var fontFamily: String = "Sans",
     var fontSizePt: Float = 12f,
     var colorArgb: Int = 0xFF000000.toInt(),
     var alignment: TextAlign = TextAlign.LEFT,
+    var bold: Boolean = false,
+    var italic: Boolean = false,
 ) : PdfEditObject() {
     enum class TextAlign { LEFT, CENTER, RIGHT }
 }
@@ -62,4 +64,32 @@ data class CoverReplaceObject(
     override var zOrder: Int = 0,
     var fillArgb: Int = 0xFFFFFFFF.toInt(),
     val overlayText: MutableList<TextEditObject> = mutableListOf(),
+) : PdfEditObject()
+
+/**
+ * Translucent yellow rectangle drawn over a region. Purely visual — never
+ * a substitute for redaction (the underlying content is still in the PDF).
+ */
+data class HighlightObject(
+    override val id: String = UUID.randomUUID().toString(),
+    override val pageIndex: Int,
+    override var rectPt: PdfRectF,
+    override var rotationDeg: Float = 0f,
+    override var zOrder: Int = 0,
+    var colorArgb: Int = 0x66FFEB3B.toInt(),
+) : PdfEditObject()
+
+/**
+ * Horizontal line painted through the vertical centre of [rectPt] to
+ * cross out underlying text. Visual only — original glyphs remain in the
+ * file.
+ */
+data class StrikethroughObject(
+    override val id: String = UUID.randomUUID().toString(),
+    override val pageIndex: Int,
+    override var rectPt: PdfRectF,
+    override var rotationDeg: Float = 0f,
+    override var zOrder: Int = 0,
+    var colorArgb: Int = 0xFF000000.toInt(),
+    var thicknessPt: Float = 1.5f,
 ) : PdfEditObject()

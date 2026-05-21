@@ -11,13 +11,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.HighlightObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.StrikethroughObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
 
 /**
@@ -60,10 +64,12 @@ fun EditObjectsLayer(
                             height = (r.bottom - r.top).pt2dp(),
                         )
                         .then(
-                            if (obj is CoverReplaceObject) {
-                                Modifier.background(Color(obj.fillArgb))
-                            } else {
-                                Modifier
+                            when (obj) {
+                                is CoverReplaceObject ->
+                                    Modifier.background(Color(obj.fillArgb))
+                                is HighlightObject ->
+                                    Modifier.background(Color(obj.colorArgb))
+                                else -> Modifier
                             },
                         )
                         .then(
@@ -86,6 +92,17 @@ fun EditObjectsLayer(
                                     text = obj.text,
                                     color = Color(obj.colorArgb),
                                     fontSize = sizeSp,
+                                    fontFamily = when (obj.fontFamily) {
+                                        "Serif" -> FontFamily.Serif
+                                        "Mono" -> FontFamily.Monospace
+                                        else -> FontFamily.SansSerif
+                                    },
+                                    fontWeight =
+                                        if (obj.bold) FontWeight.Bold
+                                        else FontWeight.Normal,
+                                    fontStyle =
+                                        if (obj.italic) FontStyle.Italic
+                                        else FontStyle.Normal,
                                     softWrap = false,
                                     overflow = TextOverflow.Visible,
                                 )
@@ -122,6 +139,21 @@ fun EditObjectsLayer(
                                     overflow = TextOverflow.Visible,
                                 )
                             }
+                        is HighlightObject -> Unit
+                        is StrikethroughObject -> {
+                            // A thin horizontal black line painted across the
+                            // vertical centre. Drawn as a Box sized 2dp tall.
+                            val hDp = (r.bottom - r.top).pt2dp()
+                            Box(
+                                Modifier
+                                    .offset(y = (hDp.value / 2f - 1f).dp)
+                                    .size(
+                                        width = (r.right - r.left).pt2dp(),
+                                        height = 2.dp,
+                                    )
+                                    .background(Color(obj.colorArgb)),
+                            )
+                        }
                     }
 
                     // Four corner handles on the selected object — drag any

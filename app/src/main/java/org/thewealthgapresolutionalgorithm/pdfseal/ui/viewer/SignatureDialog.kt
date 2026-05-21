@@ -3,10 +3,13 @@ package org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,13 +31,17 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObje
  * Typed-name signature. NOT a certified/cryptographic signature — a visual
  * typed-name stamp the user places and the exporter flattens.
  */
+private const val BLACK_ARGB = 0xFF101010.toInt()
+private const val BLUE_ARGB = 0xFF1A3FB0.toInt()
+
 @Composable
 fun SignatureDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, style: SignatureStyle) -> Unit,
+    onConfirm: (name: String, style: SignatureStyle, colorArgb: Int) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var style by remember { mutableStateOf(SignatureStyle.ELEGANT_CURSIVE) }
+    var colorArgb by remember { mutableStateOf(BLACK_ARGB) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -53,6 +60,21 @@ fun SignatureDialog(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
                 )
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = colorArgb == BLACK_ARGB,
+                        onClick = { colorArgb = BLACK_ARGB },
+                        label = { Text("Black") },
+                    )
+                    FilterChip(
+                        selected = colorArgb == BLUE_ARGB,
+                        onClick = { colorArgb = BLUE_ARGB },
+                        label = { Text("Blue") },
+                    )
+                }
                 SignatureStyle.entries.forEach { s ->
                     val selected = s == style
                     val family = FontFamily(Font(SignatureFonts.fontRes(s)))
@@ -78,6 +100,7 @@ fun SignatureDialog(
                             text = name.ifBlank { "Your Name" },
                             fontFamily = family,
                             fontSize = 30.sp,
+                            color = Color(colorArgb),
                         )
                         Text(
                             SignatureFonts.label(s),
@@ -90,7 +113,9 @@ fun SignatureDialog(
         confirmButton = {
             TextButton(
                 enabled = name.isNotBlank(),
-                onClick = { if (name.isNotBlank()) onConfirm(name, style) },
+                onClick = {
+                    if (name.isNotBlank()) onConfirm(name, style, colorArgb)
+                },
             ) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },

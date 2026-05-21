@@ -13,8 +13,10 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PanClamp
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.HighlightObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.StrikethroughObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrPageResult
 
@@ -45,6 +47,11 @@ class PdfViewerState(private val engine: PdfEngine) {
     var selectedId by mutableStateOf<String?>(null)
     var coverMode by mutableStateOf(false)
     var lastOcr by mutableStateOf<OcrPageResult?>(null)
+    /** Page-indexed OCR results from a whole-document run. Empty until then. */
+    val lastOcrAll = mutableStateListOf<OcrPageResult>()
+    /** Page progress during a whole-document OCR. -1 when idle. */
+    var ocrProgressPage by mutableStateOf(-1)
+    var ocrProgressTotal by mutableStateOf(0)
     var planVersion by mutableStateOf(0)
         private set
     var busy by mutableStateOf(false)
@@ -129,7 +136,13 @@ class PdfViewerState(private val engine: PdfEngine) {
         renderCurrent()
     }
 
-    fun addTextCentered(text: String, fontSizePt: Float) {
+    fun addTextCentered(
+        text: String,
+        fontSizePt: Float,
+        fontFamily: String = "Sans",
+        bold: Boolean = false,
+        italic: Boolean = false,
+    ) {
         val s = session ?: return
         val w = pageSizePt.width
         val h = pageSizePt.height
@@ -143,6 +156,9 @@ class PdfViewerState(private val engine: PdfEngine) {
             ),
             text = text,
             fontSizePt = fontSizePt,
+            fontFamily = fontFamily,
+            bold = bold,
+            italic = italic,
         )
         s.addEdit(obj)
         refreshOverlay()
@@ -160,6 +176,7 @@ class PdfViewerState(private val engine: PdfEngine) {
         ctx: android.content.Context,
         name: String,
         style: SignatureEditObject.SignatureStyle,
+        colorArgb: Int = 0xFF101010.toInt(),
     ) {
         val s = session ?: return
         val w = pageSizePt.width
@@ -169,11 +186,6 @@ class PdfViewerState(private val engine: PdfEngine) {
         val textW = measureSignatureWidthPt(ctx, name, style, defaultH)
         val boxW = (textW + pad * 2f).coerceIn(80f, w * 0.9f)
         val boxH = defaultH
-        android.util.Log.d(
-            "PdfSeal",
-            "addSig name=$name style=$style page=($w,$h) textW=$textW " +
-                "boxW=$boxW boxH=$boxH pageRect=$pageSizePt",
-        )
         val obj = SignatureEditObject(
             pageIndex = pageIndex,
             rectPt = PdfRectF(
@@ -182,6 +194,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             ),
             typedName = name,
             style = style,
+            colorArgb = colorArgb,
         )
         s.addEdit(obj)
         refreshOverlay()
@@ -219,6 +232,39 @@ class PdfViewerState(private val engine: PdfEngine) {
         refreshOverlay()
         selectedId = obj.id
         coverMode = false
+    }
+
+    /**
+     * Highlight the currently selected box. Drawn ON TOP as a translucent
+     * yellow band so the text underneath stays readable. (A cover-replace
+     * box has an opaque white fill, so a highlight placed *under* it would
+     * be hidden — that was the "highlight looks white" bug.)
+     */
+    fun highlightSelected() {
+        val s = session ?: return
+        val sel = overlay.firstOrNull { it.id == selectedId } ?: return
+        val obj = HighlightObject(
+            pageIndex = pageIndex,
+            rectPt = sel.rectPt.normalized(),
+            zOrder = 10_000,
+        )
+        s.addEdit(obj)
+        refreshOverlay()
+        selectedId = obj.id
+    }
+
+    /** Strike a line through the centre of the selected box. On top, visual. */
+    fun strikethroughSelected() {
+        val s = session ?: return
+        val sel = overlay.firstOrNull { it.id == selectedId } ?: return
+        val obj = StrikethroughObject(
+            pageIndex = pageIndex,
+            rectPt = sel.rectPt.normalized(),
+            zOrder = 10_001,
+        )
+        s.addEdit(obj)
+        refreshOverlay()
+        selectedId = obj.id
     }
 
     fun moveSelectedByPdf(dxPt: Float, dyPt: Float) {
@@ -267,6 +313,8 @@ class PdfViewerState(private val engine: PdfEngine) {
             is SignatureEditObject -> copy(rectPt = nr)
             is TextEditObject -> copy(rectPt = nr)
             is CoverReplaceObject -> copy(rectPt = nr)
+            is HighlightObject -> copy(rectPt = nr)
+            is StrikethroughObject -> copy(rectPt = nr)
         }
 
     /** Topmost object id whose point-space rect contains (xPt,yPt), or null. */
@@ -382,11 +430,45 @@ class PdfViewerState(private val engine: PdfEngine) {
         val s = session ?: return
         busy = true
         try {
-            lastOcr = engine.ocrPage(s, pageIndex)
+            val result = engine.ocrPage(s, pageIndex)
+            lastOcr = result
+            lastMessage = if (result.boxes.isEmpty()) {
+                "OCR complete — no text found on this page."
+            } else {
+                "OCR complete · ${result.meanConfidence.toInt()}% confidence"
+            }
         } catch (e: Exception) {
             lastMessage = "OCR failed on this page. Your PDF was not changed."
         } finally {
             busy = false
+        }
+    }
+
+    /**
+     * OCR every page. Results are appended to [lastOcrAll] in page order.
+     * [lastOcr] is also set to the most recent page so the panel's per-page
+     * stats stay populated. [ocrProgressPage]/[ocrProgressTotal] drive the
+     * panel's progress indicator.
+     */
+    suspend fun runOcrDocument() {
+        val s = session ?: return
+        busy = true
+        lastOcrAll.clear()
+        ocrProgressTotal = s.pageCount
+        ocrProgressPage = 0
+        try {
+            for (i in 0 until s.pageCount) {
+                ocrProgressPage = i + 1
+                val result = engine.ocrPage(s, i)
+                lastOcrAll.add(result)
+                lastOcr = result
+            }
+            lastMessage = "OCR finished on all ${s.pageCount} pages."
+        } catch (e: Exception) {
+            lastMessage = "OCR failed mid-document. Your PDF was not changed."
+        } finally {
+            busy = false
+            ocrProgressPage = -1
         }
     }
 
@@ -431,15 +513,61 @@ class PdfViewerState(private val engine: PdfEngine) {
         panY = PanClamp.clampAxis(panY, contentHpx * zoom, vpH)
     }
 
+    /**
+     * The editable text behind the current selection. For a plain
+     * [TextEditObject] that's the object itself; for a [CoverReplaceObject]
+     * (used by Editable Copy and Cover & Replace) it's the first overlay
+     * text, so the Edit button works on those boxes too.
+     */
     fun selectedTextObject(): TextEditObject? =
-        overlay.firstOrNull { it.id == selectedId } as? TextEditObject
+        when (val o = overlay.firstOrNull { it.id == selectedId }) {
+            is TextEditObject -> o
+            is CoverReplaceObject -> o.overlayText.firstOrNull()
+            else -> null
+        }
 
-    fun updateSelectedText(text: String, fontSizePt: Float) {
+    fun updateSelectedText(
+        text: String,
+        fontSizePt: Float,
+        fontFamily: String = "Sans",
+        bold: Boolean = false,
+        italic: Boolean = false,
+    ) {
         val id = selectedId ?: return
-        val obj = session?.editsFor(pageIndex)
-            ?.firstOrNull { it.id == id } as? TextEditObject ?: return
-        obj.text = text
-        obj.fontSizePt = fontSizePt
+        val obj = session?.editsFor(pageIndex)?.firstOrNull { it.id == id }
+            ?: return
+        when (obj) {
+            is TextEditObject -> {
+                obj.text = text
+                obj.fontSizePt = fontSizePt
+                obj.fontFamily = fontFamily
+                obj.bold = bold
+                obj.italic = italic
+            }
+            is CoverReplaceObject -> {
+                val inner = obj.overlayText.firstOrNull()
+                if (inner != null) {
+                    inner.text = text
+                    inner.fontSizePt = fontSizePt
+                    inner.fontFamily = fontFamily
+                    inner.bold = bold
+                    inner.italic = italic
+                } else {
+                    obj.overlayText.add(
+                        TextEditObject(
+                            pageIndex = obj.pageIndex,
+                            rectPt = obj.rectPt,
+                            text = text,
+                            fontSizePt = fontSizePt,
+                            fontFamily = fontFamily,
+                            bold = bold,
+                            italic = italic,
+                        ),
+                    )
+                }
+            }
+            else -> return
+        }
         session?.hasUnsavedEdits = true
         refreshOverlay()
     }

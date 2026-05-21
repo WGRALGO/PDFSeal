@@ -52,14 +52,47 @@ class EditObjectPainter(private val context: Context) {
             }
             is TextEditObject -> drawText(canvas, obj)
             is SignatureEditObject -> drawSignature(canvas, obj)
+            is HighlightObject -> {
+                val r = obj.rectPt
+                canvas.drawRect(
+                    RectF(r.left, r.top, r.right, r.bottom),
+                    Paint().apply {
+                        color = obj.colorArgb
+                        style = Paint.Style.FILL
+                    },
+                )
+            }
+            is StrikethroughObject -> {
+                val r = obj.rectPt
+                val midY = (r.top + r.bottom) / 2f
+                canvas.drawLine(
+                    r.left, midY, r.right, midY,
+                    Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = obj.colorArgb
+                        strokeWidth = obj.thicknessPt
+                    },
+                )
+            }
         }
     }
 
     fun drawText(canvas: Canvas, t: TextEditObject) {
         if (t.text.isEmpty()) return
+        val base = when (t.fontFamily) {
+            "Serif" -> Typeface.SERIF
+            "Mono" -> Typeface.MONOSPACE
+            else -> Typeface.SANS_SERIF
+        }
+        val style = when {
+            t.bold && t.italic -> Typeface.BOLD_ITALIC
+            t.bold -> Typeface.BOLD
+            t.italic -> Typeface.ITALIC
+            else -> Typeface.NORMAL
+        }
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = t.colorArgb
             textSize = t.fontSizePt
+            typeface = Typeface.create(base, style)
             textAlign = when (t.alignment) {
                 TextEditObject.TextAlign.LEFT -> Paint.Align.LEFT
                 TextEditObject.TextAlign.CENTER -> Paint.Align.CENTER

@@ -52,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -65,7 +66,6 @@ import kotlinx.coroutines.launch
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.CoverDrawLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.EditObjectsLayer
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.GoToPageDialog
-import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.OcrPanel
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
@@ -85,7 +85,7 @@ fun ViewerScreen(
     val snackbar = remember { SnackbarHostState() }
     var showTextDialog by remember { mutableStateOf(false) }
     var showSignatureDialog by remember { mutableStateOf(false) }
-    var showOcrPanel by remember { mutableStateOf(false) }
+    var showSearchPanel by remember { mutableStateOf(false) }
     var showEditTextDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
     var showThumbs by remember { mutableStateOf(false) }
@@ -137,6 +137,7 @@ fun ViewerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -149,8 +150,14 @@ fun ViewerScreen(
                             if (state.selectedTextObject() != null) {
                                 FilledTonalButton(
                                     onClick = { showEditTextDialog = true },
-                                ) { Text("Edit") }
+                                ) { Text("Edit text") }
                             }
+                            FilledTonalButton(
+                                onClick = { state.highlightSelected() },
+                            ) { Text("Highlight") }
+                            FilledTonalButton(
+                                onClick = { state.strikethroughSelected() },
+                            ) { Text("Strikethrough") }
                             FilledTonalButton(
                                 onClick = { state.deleteSelected() },
                             ) { Text("Delete") }
@@ -199,24 +206,17 @@ fun ViewerScreen(
                             enabled = !state.busy && state.pageCount > 0) {
                             showSignatureDialog = true
                         }
-                        BarButton(
-                            if (state.coverMode) "Cover ✓" else "Cover",
-                            enabled = !state.busy && state.pageCount > 0,
-                        ) {
-                            if (state.coverMode) state.coverMode = false
-                            else showCoverWarning = true
+                        BarButton("Search",
+                            enabled = !state.busy && state.pageCount > 0) {
+                            showSearchPanel = true
                         }
                         BarButton("OCR",
                             enabled = !state.busy && state.pageCount > 0) {
-                            showOcrPanel = true
+                            scope.launch { state.runOcrCurrent() }
                         }
-                        BarButton("Editable Copy",
+                        BarButton("Edit",
                             enabled = !state.busy && state.pageCount > 0) {
                             scope.launch { state.makeEditableCopyCurrent() }
-                        }
-                        BarButton("Reorder Pages",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            showPagesDialog = true
                         }
                         BarSeparator()
                         Button(
@@ -415,8 +415,8 @@ fun ViewerScreen(
     if (showTextDialog) {
         TextToolDialog(
             onDismiss = { showTextDialog = false },
-            onConfirm = { text, sizePt ->
-                state.addTextCentered(text, sizePt)
+            onConfirm = { text, sizePt, family, bold, italic ->
+                state.addTextCentered(text, sizePt, family, bold, italic)
                 showTextDialog = false
             },
         )
@@ -428,9 +428,14 @@ fun ViewerScreen(
             TextToolDialog(
                 initialText = sel.text,
                 initialSizePt = sel.fontSizePt,
+                initialFamily = sel.fontFamily,
+                initialBold = sel.bold,
+                initialItalic = sel.italic,
                 onDismiss = { showEditTextDialog = false },
-                onConfirm = { text, sizePt ->
-                    state.updateSelectedText(text, sizePt)
+                onConfirm = { text, sizePt, family, bold, italic ->
+                    state.updateSelectedText(
+                        text, sizePt, family, bold, italic,
+                    )
                     showEditTextDialog = false
                 },
             )
@@ -456,11 +461,12 @@ fun ViewerScreen(
         )
     }
 
-    if (showOcrPanel) {
-        OcrPanel(
+    if (showSearchPanel) {
+        org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SearchPanel(
             state = state,
-            onRun = { scope.launch { state.runOcrCurrent() } },
-            onDismiss = { showOcrPanel = false },
+            onIndex = { scope.launch { state.runOcrDocument() } },
+            onJumpToPage = { p -> scope.launch { state.goTo(p) } },
+            onDismiss = { showSearchPanel = false },
         )
     }
 
@@ -519,8 +525,8 @@ fun ViewerScreen(
     if (showSignatureDialog) {
         SignatureDialog(
             onDismiss = { showSignatureDialog = false },
-            onConfirm = { name, style ->
-                state.addSignatureCentered(context, name, style)
+            onConfirm = { name, style, colorArgb ->
+                state.addSignatureCentered(context, name, style, colorArgb)
                 showSignatureDialog = false
             },
         )
