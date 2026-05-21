@@ -6,15 +6,6 @@ PDFSeal is being repaired and tested feature by feature on real hardware. The
 **source code is public** so the work can be reviewed, built, and improved. No
 prebuilt APK is published here; build from source if you want to try it.
 
-**Status as of 2026-05-20 — fixes verified on a real tablet (debug build):**
-
-- ✅ Typed visual signature places, moves, resizes (and supports black/blue ink)
-- ✅ Offline OCR now returns usable text and reports confidence
-- ✅ Document Search (offline) — index once, find text across pages, jump to a hit
-- ✅ Editable Copy hides the original line instead of double-printing over it
-- ✅ Edit / delete placed text; highlight and strikethrough on a selected box
-- ✅ Add Text with font family, bold, italic
-
 Still being validated end-to-end (open → edit → export → reopen elsewhere)
 before any public APK release. Until the full device test matrix passes, treat
 PDFSeal as pre-release: **source available, not yet released.**
