@@ -55,33 +55,48 @@ structures.
 
 ## What PDFSeal currently does
 
+Working and verified on a real tablet (debug build):
+
 - Open local PDFs via the Android Storage Access Framework (SAF)
-- View, zoom, pan, page navigation, page thumbnails
-- **Add Text** — place new text boxes anywhere on a page
-- **Typed Visual Signature** — type your name, pick a signature style, place/move/resize/rotate, flatten on export. A *visual* mark only — **not** a certified cryptographic digital signature.
+- View, zoom, pan, page navigation
+- **Bookmarks** — read the PDF outline and tap an entry to jump to its page; add a bookmark for the current page; delete bookmarks; "Save PDF with bookmarks" writes the updated outline to a real PDF
+- **Pages menu** — page thumbnails plus:
+  - **Rotate** the current page left/right 90° (live in the viewer)
+  - **Crop** one page or all pages with an adjustable handle box (composes with rotation)
+  - **Delete** pages by range (e.g. `3-7`, `2,5,9-11`)
+  - **Add PDF** — merge another PDF in at the start, after the current page, or at the end
+  - The viewer navigates the edited page plan, so rotate/crop/delete/add are WYSIWYG
+- **Add Text** — place new text; the box auto-fits and you resize the text by dragging a corner
+- **Typed Visual Signature** — type a name, pick a style, place/move/resize/rotate. A *visual* mark only — **not** a certified cryptographic digital signature.
 - **Cover & Replace** — visually cover a rectangular area and put replacement text on top (visual only — **not** secure redaction)
-- **Make Editable Copy** — OCR a page, reconstruct editable text overlays, export a flattened edited copy
-- Offline OCR (current page / selected pages / whole PDF where performance allows)
-- Page tools — rotate, delete, reorder a page
-- Export an edited **copy** by default; the original is never silently overwritten
+- **Export Flattened PDF** — burns all edits (text, signature, cover/replace, highlight, strikethrough) into a new flattened PDF copy. Verified to produce a valid, openable `%PDF` file; copies to the chosen location via SAF; the original is never overwritten. Handles large documents without running out of memory.
+
+### Not fully functional yet
+
+These run but are **not** reliable end-to-end — treat them as experimental:
+
+- **OCR** — offline Tesseract OCR executes, but recognition/placement is not dependable yet. Always review results.
+- **Edit / tap-to-edit (Make Editable Copy)** — depends on OCR, so it is also not fully functional. Tapping a recognised line to edit it may misread or misplace text.
 
 ## Planned / future features
 
-These are **not** in the current APK:
+These are **not** finished yet:
 
-- Cross-file **merge** and page **split/extract** with a full
-  open → edit → export → reopen-elsewhere round trip
+- Reliable **OCR** and OCR-based **tap-to-edit / Make Editable Copy**
+- Page **split/extract**
 - Additional OCR languages beyond English/Latin
 
 ## Current status
 
 > **Under testing — source available, not yet released.** PDFSeal is in
 > pre-release development. No prebuilt APK is published; build from source to
-> try it. As of the 2026-05-20 device pass the signature, OCR, document
-> search, editable copy, text editing, highlight/strikethrough, and font
-> options all work on a real tablet (debug build). The full open → edit →
-> export → reopen-elsewhere matrix is still being validated before any public
-> APK release.
+> try it. As of the 2026-05-21 device pass, bookmarks, the Pages menu
+> (rotate / crop / delete-by-range / add-PDF merge), Add Text (auto-fit +
+> drag-to-resize), typed signature, cover & replace, and **Export Flattened
+> PDF** (now produces a verified valid PDF and handles large documents) all
+> work on a real tablet (debug build). **OCR and the OCR-based Edit /
+> tap-to-edit feature are not fully functional yet** and are still being
+> worked on.
 > See [RELEASE_WITHDRAWAL.md](RELEASE_WITHDRAWAL.md) for history,
 > [docs/TESTING.md](docs/TESTING.md) for the test matrix,
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the phased plan
