@@ -1,14 +1,18 @@
 # PDFSeal
 
-🧪 Under active testing — source available, no public APK yet.
+🧪 Pre-release — source available, **pre-release APK published**.
 
 PDFSeal is being repaired and tested feature by feature on real hardware. The
-**source code is public** so the work can be reviewed, built, and improved. No
-prebuilt APK is published here; build from source if you want to try it.
+**source code is public** so the work can be reviewed, built, and improved. A
+**pre-release APK (v1.1.0)** is now available on the
+[Releases page](https://github.com/WGRALGO/WGRALGO-PDFSeal/releases) — or build
+from source.
 
-Still being validated end-to-end (open → edit → export → reopen elsewhere)
-before any public APK release. Until the full device test matrix passes, treat
-PDFSeal as pre-release: **source available, not yet released.**
+This is a pre-release: core features (bookmarks, Pages menu, add-text, signature,
+cover & replace, memory-safe flatten export) are working and verified on-device,
+but **OCR and OCR-based Edit (tap-to-edit) are not fully functional yet.** Still
+being validated end-to-end (open → edit → export → reopen elsewhere) before a
+stable release.
 
 ## Project Purpose
 
