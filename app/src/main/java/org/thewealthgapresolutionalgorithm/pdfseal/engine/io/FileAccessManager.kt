@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import java.io.File
 import java.io.InputStream
@@ -104,4 +105,23 @@ class FileAccessManager(private val context: Context) {
     fun openOutput(uri: Uri, mode: String = "wt"): OutputStream =
         resolver.openOutputStream(uri, mode)
             ?: error("Cannot open output stream for $uri")
+
+    /**
+     * Read up to [n] leading bytes of a content URI (used to verify an export
+     * starts with the PDF magic). Returns an empty array if it can't be read.
+     */
+    fun readLeadingBytes(uri: Uri, n: Int): ByteArray =
+        runCatching {
+            resolver.openInputStream(uri)?.use { ins ->
+                val buf = ByteArray(n)
+                val read = ins.read(buf)
+                if (read <= 0) ByteArray(0) else buf.copyOf(read)
+            } ?: ByteArray(0)
+        }.getOrDefault(ByteArray(0))
+
+    /** Best-effort delete of a SAF document (e.g. a failed/empty export). */
+    fun deleteDocument(uri: Uri): Boolean =
+        runCatching {
+            DocumentsContract.deleteDocument(resolver, uri)
+        }.getOrDefault(false)
 }

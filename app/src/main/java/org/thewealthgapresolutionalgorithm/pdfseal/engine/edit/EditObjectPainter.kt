@@ -91,7 +91,9 @@ class EditObjectPainter(private val context: Context) {
         }
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = t.colorArgb
-            textSize = t.fontSizePt
+            // Font scales with the box height (same model as signatures), so
+            // dragging a corner resizes the text and the box always fits it.
+            textSize = t.rectPt.height.coerceIn(6f, 400f) * 0.8f
             typeface = Typeface.create(base, style)
             textAlign = when (t.alignment) {
                 TextEditObject.TextAlign.LEFT -> Paint.Align.LEFT

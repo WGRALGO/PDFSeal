@@ -82,11 +82,12 @@ fun EditObjectsLayer(
                 ) {
                     when (obj) {
                         is TextEditObject -> {
-                            // px text height -> sp (toSp divides by density,
-                            // so fontSize on screen == fontSizePt * scale px,
-                            // matching the exporter's paint.textSize).
+                            // Font derives from box height (matches the exporter
+                            // and signatures), so dragging a corner scales the
+                            // text live on screen.
                             val sizeSp =
-                                (obj.fontSizePt.ptPx() / densityPxPerDp).sp
+                                ((r.bottom - r.top).ptPx() * 0.8f /
+                                    densityPxPerDp).sp
                             if (obj.text.isNotEmpty()) {
                                 Text(
                                     text = obj.text,
@@ -133,7 +134,7 @@ fun EditObjectsLayer(
                                     text = t.text,
                                     color = Color(t.colorArgb),
                                     fontSize =
-                                        (t.fontSizePt.ptPx() /
+                                        ((r.bottom - r.top).ptPx() * 0.8f /
                                             densityPxPerDp).sp,
                                     softWrap = false,
                                     overflow = TextOverflow.Visible,

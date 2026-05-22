@@ -70,7 +70,6 @@ import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PdfViewerState
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SignatureDialog
-import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.ThumbnailsDialog
 import org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.TextToolDialog
 
 private enum class GestureMode { PAN, MOVE, RESIZE }
@@ -88,6 +87,7 @@ fun ViewerScreen(
     var showSearchPanel by remember { mutableStateOf(false) }
     var showEditTextDialog by remember { mutableStateOf(false) }
     var showPagesDialog by remember { mutableStateOf(false) }
+    var showBookmarks by remember { mutableStateOf(false) }
     var showThumbs by remember { mutableStateOf(false) }
     var showGoTo by remember { mutableStateOf(false) }
     var showExportWarning by remember { mutableStateOf(false) }
@@ -103,9 +103,24 @@ fun ViewerScreen(
         }
     }
 
+    LaunchedEffect(state.openEditDialogRequested) {
+        if (state.openEditDialogRequested) {
+            showEditTextDialog = true
+            state.openEditDialogRequested = false
+        }
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/pdf"),
     ) { uri -> if (uri != null) scope.launch { state.export(uri) } }
+
+    val saveBookmarksLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf"),
+    ) { uri -> if (uri != null) scope.launch { state.saveWithBookmarks(uri) } }
+
+    val addPdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> if (uri != null) state.pendingAddPdfUri = uri }
 
     val hasSelection = state.selectedId != null
 
@@ -117,8 +132,10 @@ fun ViewerScreen(
                     Text(
                         when {
                             state.coverMode -> "Drag to cover an area"
-                            state.pageCount > 0 ->
-                                "Page ${state.pageIndex + 1} / ${state.pageCount}"
+                            state.cropMode -> "Drag the area to keep, then crop"
+                            state.editTapMode -> "Tap text to edit it"
+                            state.navCount > 0 ->
+                                "Page ${state.planPos + 1} / ${state.navCount}"
                             else -> "PDFSeal"
                         },
                     )
@@ -126,6 +143,18 @@ fun ViewerScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                actions = {
+                    if (state.cropMode) {
+                        TextButton(onClick = { state.cropMode = false }) {
+                            Text("Cancel crop")
+                        }
+                    } else {
+                        TextButton(
+                            enabled = !state.busy && state.pageCount > 0,
+                            onClick = { showBookmarks = true },
+                        ) { Text("Bookmarks") }
                     }
                 },
             )
@@ -176,23 +205,23 @@ fun ViewerScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BarButton("Prev",
-                            enabled = state.pageIndex > 0 && !state.busy) {
-                            scope.launch { state.goTo(state.pageIndex - 1) }
+                            enabled = state.planPos > 0 && !state.busy) {
+                            scope.launch { state.goToForEditing(state.planPos - 1) }
                         }
                         OutlinedButton(
-                            enabled = !state.busy && state.pageCount > 0,
+                            enabled = !state.busy && state.navCount > 0,
                             onClick = { showGoTo = true },
                         ) {
                             Text(
-                                if (state.pageCount > 0) {
-                                    "${state.pageIndex + 1}/${state.pageCount}"
+                                if (state.navCount > 0) {
+                                    "${state.planPos + 1}/${state.navCount}"
                                 } else "—",
                             )
                         }
                         BarButton("Next",
-                            enabled = state.pageIndex < state.pageCount - 1 &&
+                            enabled = state.planPos < state.navCount - 1 &&
                                 !state.busy) {
-                            scope.launch { state.goTo(state.pageIndex + 1) }
+                            scope.launch { state.goToForEditing(state.planPos + 1) }
                         }
                         BarButton("Pages…",
                             enabled = !state.busy && state.pageCount > 0) {
@@ -214,9 +243,14 @@ fun ViewerScreen(
                             enabled = !state.busy && state.pageCount > 0) {
                             scope.launch { state.runOcrCurrent() }
                         }
-                        BarButton("Edit",
+                        BarButton(
+                            if (state.editTapMode) "Done editing" else "Edit",
                             enabled = !state.busy && state.pageCount > 0) {
-                            scope.launch { state.makeEditableCopyCurrent() }
+                            if (state.editTapMode) {
+                                state.exitEditMode()
+                            } else {
+                                scope.launch { state.enterEditMode() }
+                            }
                         }
                         BarSeparator()
                         Button(
@@ -270,10 +304,15 @@ fun ViewerScreen(
                             translationY = state.panY,
                         )
                         .pointerInput(bmp, scale) {
-                            val handleTolPt = 22f / scale
+                            val handleTolPt = 30f / scale
                             awaitEachGesture {
                                 val down =
                                     awaitFirstDown(requireUnconsumed = false)
+                                // Crop/Cover overlays own all input while active —
+                                // don't let the page pan/zoom underneath them.
+                                if (state.cropMode || state.coverMode) {
+                                    return@awaitEachGesture
+                                }
                                 val sx = down.position.x / scale
                                 val sy = down.position.y / scale
                                 var corner: PdfViewerState.HandleCorner? = null
@@ -371,7 +410,14 @@ fun ViewerScreen(
                                     }
                                 } while (event.changes.any { it.pressed })
                                 if (!moved && mode == GestureMode.PAN) {
-                                    state.selectedId = null
+                                    // Tap on empty space: in edit mode, turn the
+                                    // tapped text line into an editable overlay;
+                                    // otherwise just clear the selection.
+                                    if (state.editTapMode) {
+                                        state.tapToEdit(sx, sy)
+                                    } else {
+                                        state.selectedId = null
+                                    }
                                 }
                             }
                         },
@@ -391,6 +437,13 @@ fun ViewerScreen(
                             state = state,
                             contentScalePxPerPt = scale,
                         )
+                    }
+                    if (state.cropMode) {
+                        org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer
+                            .CropDrawLayer(
+                                state = state,
+                                contentScalePxPerPt = scale,
+                            )
                     }
                 }
             } else if (state.openFailed) {
@@ -448,16 +501,110 @@ fun ViewerScreen(
         PagesDialog(state = state, onDismiss = { showPagesDialog = false })
     }
 
+    state.pendingAddPdfUri?.let { addUri ->
+        AlertDialog(
+            onDismissRequest = { state.pendingAddPdfUri = null },
+            title = { Text("Where to add these pages?") },
+            text = {
+                Text(
+                    "Insert the picked PDF's pages at the start, after the " +
+                        "current page (page ${state.planPos + 1}), or at the end.",
+                )
+            },
+            confirmButton = {
+                Column {
+                    TextButton(onClick = {
+                        state.pendingAddPdfUri = null
+                        scope.launch { state.addPdf(addUri, 0) }
+                    }) { Text("At the start") }
+                    TextButton(onClick = {
+                        state.pendingAddPdfUri = null
+                        scope.launch {
+                            state.addPdf(addUri, state.planPositionAfterCurrent())
+                        }
+                    }) { Text("After current page") }
+                    TextButton(onClick = {
+                        state.pendingAddPdfUri = null
+                        scope.launch { state.addPdf(addUri, state.planSize) }
+                    }) { Text("At the end") }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { state.pendingAddPdfUri = null }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (state.pendingCropFrac != null) {
+        AlertDialog(
+            onDismissRequest = { state.cancelPendingCrop() },
+            title = { Text("Apply crop to…") },
+            text = {
+                Text(
+                    "Crop just this page, or apply the same crop to every page?",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { state.applyPendingCrop(allPages = false) }
+                }) { Text("This page") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        scope.launch { state.applyPendingCrop(allPages = true) }
+                    }) { Text("All pages") }
+                    TextButton(onClick = { state.cancelPendingCrop() }) {
+                        Text("Cancel")
+                    }
+                }
+            },
+        )
+    }
+
+    if (showBookmarks) {
+        org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.BookmarksDialog(
+            state = state,
+            onJump = { p -> scope.launch { state.goToSource(p) } },
+            onSave = {
+                showBookmarks = false
+                saveBookmarksLauncher.launch(state.defaultBookmarkSaveName())
+            },
+            onDismiss = { showBookmarks = false },
+        )
+    }
+
     if (showThumbs) {
-        ThumbnailsDialog(state = state, onDismiss = { showThumbs = false })
+        org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.PagesMenuDialog(
+            state = state,
+            onJump = { pos -> scope.launch { state.goToPlan(pos) } },
+            onRotate = { d -> scope.launch { state.rotateCurrentPage(d) } },
+            onRerender = { scope.launch { state.goToPlan(state.planPos) } },
+            onCrop = {
+                showThumbs = false
+                state.selectedId = null
+                state.cropMode = true
+            },
+            onClearCrop = {
+                showThumbs = false
+                scope.launch { state.clearCropCurrent() }
+            },
+            onAddPdf = {
+                showThumbs = false
+                addPdfLauncher.launch(arrayOf("application/pdf"))
+            },
+            onDismiss = { showThumbs = false },
+        )
     }
 
     if (showGoTo) {
         GoToPageDialog(
-            pageCount = state.pageCount,
-            currentPage1 = state.pageIndex + 1,
+            pageCount = state.navCount,
+            currentPage1 = state.planPos + 1,
             onDismiss = { showGoTo = false },
-            onGo = { idx -> scope.launch { state.goTo(idx) } },
+            onGo = { idx -> scope.launch { state.goToPlan(idx) } },
         )
     }
 
@@ -465,7 +612,7 @@ fun ViewerScreen(
         org.thewealthgapresolutionalgorithm.pdfseal.ui.viewer.SearchPanel(
             state = state,
             onIndex = { scope.launch { state.runOcrDocument() } },
-            onJumpToPage = { p -> scope.launch { state.goTo(p) } },
+            onJumpToPage = { p -> scope.launch { state.goToSource(p) } },
             onDismiss = { showSearchPanel = false },
         )
     }

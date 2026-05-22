@@ -6,9 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.Bookmark
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfCoordinateMapper
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfDocumentSession
-import org.thewealthgapresolutionalgorithm.pdfseal.engine.EditableCopyBuilder
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PanClamp
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
@@ -18,6 +18,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.StrikethroughObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrBox
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.ocr.OcrPageResult
 
 /**
@@ -31,8 +32,22 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     var session by mutableStateOf<PdfDocumentSession?>(null)
         private set
-    var pageIndex by mutableStateOf(0)
+
+    /**
+     * Position in the page PLAN (export order) the viewer is showing. The
+     * viewer navigates the plan, so delete/add/reorder are WYSIWYG. The actual
+     * source page to render/edit is [pageIndex], derived from this.
+     */
+    var planPos by mutableStateOf(0)
         private set
+
+    /** Source page index for the current [planPos] — used for render & edits. */
+    val pageIndex: Int
+        get() = session?.exportOrder?.getOrNull(planPos)
+            ?: planPos.coerceAtLeast(0)
+
+    /** Number of pages the viewer pages through (plan size, not raw doc count). */
+    val navCount: Int get() = session?.exportOrder?.size ?: 0
     var pageBitmap by mutableStateOf<Bitmap?>(null)
         private set
     var pageSizePt by mutableStateOf(PdfRectF(0f, 0f, 1f, 1f))
@@ -46,6 +61,22 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     var selectedId by mutableStateOf<String?>(null)
     var coverMode by mutableStateOf(false)
+    /** Drag-to-crop mode. While on, the page accepts a crop rectangle drag. */
+    var cropMode by mutableStateOf(false)
+    /**
+     * A crop rectangle the user just dragged, expressed as fractions (0..1) of
+     * the FULL rotated page, waiting for the this-page / all-pages choice. The
+     * viewer shows the choice dialog while this is non-null.
+     */
+    var pendingCropFrac by mutableStateOf<PdfRectF?>(null)
+    /**
+     * Tap-to-edit mode. When on, the page shows NO editable boxes (it stays
+     * clean and readable); tapping a line of text turns just that one line into
+     * an editable overlay. Entered from the "Edit" button after OCR runs.
+     */
+    var editTapMode by mutableStateOf(false)
+    /** Set by [tapToEdit]; the viewer opens the text editor when it flips true. */
+    var openEditDialogRequested by mutableStateOf(false)
     var lastOcr by mutableStateOf<OcrPageResult?>(null)
     /** Page-indexed OCR results from a whole-document run. Empty until then. */
     val lastOcrAll = mutableStateListOf<OcrPageResult>()
@@ -65,6 +96,9 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     val overlay = mutableStateListOf<PdfEditObject>()
 
+    /** Document outline shown in the Bookmarks dialog. Loaded once on open. */
+    val bookmarks = mutableStateListOf<Bookmark>()
+
     val pageCount: Int get() = session?.pageCount ?: 0
 
     fun mapper() = PdfCoordinateMapper(
@@ -78,9 +112,10 @@ class PdfViewerState(private val engine: PdfEngine) {
         openFailed = false
         try {
             session = engine.openDocument(uri)
-            pageIndex = 0
+            planPos = 0
             zoom = 1f; panX = 0f; panY = 0f
             renderCurrent()
+            loadBookmarks()
         } catch (e: kotlinx.coroutines.CancellationException) {
             // Structured-cancellation must propagate, never be swallowed as
             // an "open failed". (A prior bug surfaced this as a fake error
@@ -104,15 +139,24 @@ class PdfViewerState(private val engine: PdfEngine) {
         val s = session ?: return
         busy = true
         try {
-            pageSizePt = s.pageSizePt(pageIndex)
+            // Display size: rotated then cropped. The viewer works in the same
+            // coordinate space the exporter writes, so overlays placed here
+            // line up on export.
+            pageSizePt = s.displayPageSizePt(pageIndex)
             // Adaptive: keep the rendered bitmap crisp when zoomed without
             // wasting memory on huge pages. Target ~2200 px on the long edge.
             val longEdgePt = maxOf(pageSizePt.width, pageSizePt.height)
                 .coerceAtLeast(1f)
             renderScale = (2200f / longEdgePt).coerceIn(2f, 4f)
-            pageBitmap = engine.renderPage(s, pageIndex, renderScale)
+            pageBitmap = engine.renderPage(
+                s, pageIndex, renderScale, s.rotationOf(pageIndex),
+                s.cropOf(pageIndex),
+            )
             refreshOverlay()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
+            android.util.Log.e("PdfSeal", "renderCurrent failed page=$pageIndex", e)
             lastMessage = "Render failed: ${e.message}"
         } finally {
             busy = false
@@ -129,11 +173,77 @@ class PdfViewerState(private val engine: PdfEngine) {
         )
     }
 
-    suspend fun goTo(page: Int) {
+    /** Navigate to a position in the PLAN (0-based). */
+    suspend fun goToPlan(position: Int) {
         val s = session ?: return
-        pageIndex = page.coerceIn(0, s.pageCount - 1)
+        val last = (s.exportOrder.size - 1).coerceAtLeast(0)
+        planPos = position.coerceIn(0, last)
         selectedId = null
         renderCurrent()
+    }
+
+    /** Navigate to whatever plan position holds source page [srcIndex]. */
+    suspend fun goToSource(srcIndex: Int) {
+        val s = session ?: return
+        val pos = s.exportOrder.indexOf(srcIndex)
+        if (pos >= 0) goToPlan(pos) else goToPlan(planPos)
+    }
+
+    /**
+     * Navigate within the plan, and if we're in tap-to-edit mode also (re-)OCR
+     * the landing page so tapping a line works there. Used by Prev/Next; plain
+     * navigation (e.g. the Pages thumbnails) uses [goToPlan].
+     */
+    suspend fun goToForEditing(position: Int) {
+        goToPlan(position)
+        if (editTapMode) ensureOcrCurrent()
+    }
+
+    // ---- Bookmarks (document outline) ----
+
+    suspend fun loadBookmarks() {
+        val list = engine.loadBookmarks(session ?: return)
+        bookmarks.clear()
+        bookmarks.addAll(list)
+    }
+
+    /** Add a top-level bookmark pointing at the page currently being viewed. */
+    fun addBookmark(title: String) {
+        val s = session ?: return
+        val name = title.trim().ifBlank { "Page ${pageIndex + 1}" }
+        val bm = Bookmark(title = name, pageIndex = pageIndex, depth = 0)
+        bookmarks.add(bm)
+        s.bookmarks.add(bm)
+        s.bookmarksDirty = true
+    }
+
+    fun deleteBookmark(id: String) {
+        val s = session ?: return
+        bookmarks.removeAll { it.id == id }
+        s.bookmarks.removeAll { it.id == id }
+        s.bookmarksDirty = true
+    }
+
+    val bookmarksDirty: Boolean get() = session?.bookmarksDirty ?: false
+
+    fun defaultBookmarkSaveName(): String {
+        val raw = session?.displayName ?: "document.pdf"
+        val base = raw.substringBeforeLast('.', raw).ifBlank { "document" }
+        return "$base-bookmarks.pdf"
+    }
+
+    suspend fun saveWithBookmarks(targetUri: Uri) {
+        val s = session ?: return
+        busy = true
+        try {
+            engine.saveWithBookmarks(s, targetUri, bookmarks.toList())
+            lastMessage = "Saved a PDF with your bookmarks. Original unchanged."
+        } catch (e: Exception) {
+            lastMessage =
+                "Could not save bookmarks. Your original PDF was not changed."
+        } finally {
+            busy = false
+        }
     }
 
     fun addTextCentered(
@@ -146,8 +256,12 @@ class PdfViewerState(private val engine: PdfEngine) {
         val s = session ?: return
         val w = pageSizePt.width
         val h = pageSizePt.height
-        val boxW = (w * 0.5f).coerceAtLeast(80f)
-        val boxH = fontSizePt * 1.6f
+        // Fit the box to the text so the handles aren't oversized and resizing
+        // scales the text (font derives from box height in EditObjectPainter).
+        val pad = 6f
+        val boxH = fontSizePt * 1.25f // rendered font ≈ boxH*0.8 = fontSizePt
+        val textW = measureTextWidthPt(text, fontSizePt, fontFamily, bold, italic)
+        val boxW = (textW + pad * 2f).coerceIn(40f, w * 0.95f)
         val obj = TextEditObject(
             pageIndex = pageIndex,
             rectPt = PdfRectF(
@@ -163,6 +277,32 @@ class PdfViewerState(private val engine: PdfEngine) {
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
+    }
+
+    private fun measureTextWidthPt(
+        text: String,
+        sizePt: Float,
+        family: String,
+        bold: Boolean,
+        italic: Boolean,
+    ): Float {
+        val base = when (family) {
+            "Serif" -> android.graphics.Typeface.SERIF
+            "Mono" -> android.graphics.Typeface.MONOSPACE
+            else -> android.graphics.Typeface.SANS_SERIF
+        }
+        val style = when {
+            bold && italic -> android.graphics.Typeface.BOLD_ITALIC
+            bold -> android.graphics.Typeface.BOLD
+            italic -> android.graphics.Typeface.ITALIC
+            else -> android.graphics.Typeface.NORMAL
+        }
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            .apply {
+                textSize = sizePt
+                typeface = android.graphics.Typeface.create(base, style)
+            }
+        return p.measureText(text.ifEmpty { "Text" })
     }
 
     /**
@@ -473,22 +613,23 @@ class PdfViewerState(private val engine: PdfEngine) {
     }
 
     /**
-     * OCR the page and turn recognised lines into editable text overlays.
-     * This is OCR-based reconstruction — review/correct before export.
+     * Enter tap-to-edit mode. We OCR the current page so we know where the text
+     * lines are, but we do NOT create any overlay boxes — the page stays clean.
+     * The user then taps a line and only that line becomes editable
+     * ([tapToEdit]). This replaces the old "flood the page with boxes" Edit.
      */
-    suspend fun makeEditableCopyCurrent() {
+    suspend fun enterEditMode() {
         val s = session ?: return
         busy = true
         try {
             val ocr = engine.ocrPage(s, pageIndex)
             lastOcr = ocr
-            val overlays = EditableCopyBuilder.buildOverlays(ocr)
-            overlays.forEach { s.addEdit(it) }
-            refreshOverlay()
-            lastMessage = if (overlays.isEmpty()) {
-                "No text recognised on this page."
+            editTapMode = true
+            selectedId = null
+            lastMessage = if (ocr.boxes.isEmpty()) {
+                "No editable text recognised on this page."
             } else {
-                "${overlays.size} editable text boxes created. " +
+                "Tap a line of text to edit it. " +
                     org.thewealthgapresolutionalgorithm.pdfseal.ui
                         .HonestCopy.OCR_REVIEW_WARNING
             }
@@ -498,6 +639,81 @@ class PdfViewerState(private val engine: PdfEngine) {
             busy = false
         }
     }
+
+    fun exitEditMode() {
+        editTapMode = false
+    }
+
+    /** Make sure OCR exists for the current page (used when paging in edit mode). */
+    suspend fun ensureOcrCurrent() {
+        val s = session ?: return
+        if (s.ocrResults[pageIndex] == null) {
+            busy = true
+            try {
+                lastOcr = engine.ocrPage(s, pageIndex)
+            } catch (e: Exception) {
+                lastMessage = "OCR failed on this page."
+            } finally {
+                busy = false
+            }
+        } else {
+            lastOcr = s.ocrResults[pageIndex]
+        }
+    }
+
+    /**
+     * Tap-to-edit: find the OCR text line under (xPt,yPt) on the current page,
+     * turn just that one line into an editable Cover & Replace overlay, select
+     * it, and ask the viewer to open the text editor. Returns true if a line
+     * was hit. The rest of the page is left untouched.
+     */
+    fun tapToEdit(xPt: Float, yPt: Float): Boolean {
+        val s = session ?: return false
+        val ocr = s.ocrResults[pageIndex] ?: lastOcr?.takeIf { it.pageIndex == pageIndex }
+            ?: return false
+        if (ocr.renderedBitmapWidthPx == 0 || ocr.renderedBitmapHeightPx == 0) {
+            return false
+        }
+        val sx = ocr.pdfPageWidthPt / ocr.renderedBitmapWidthPx
+        val sy = ocr.pdfPageHeightPt / ocr.renderedBitmapHeightPx
+        val hit = ocr.boxes
+            .asSequence()
+            .filter { it.level == OcrBox.Level.LINE }
+            .map { box ->
+                val r = box.boundsBitmapPx
+                box to PdfRectF(
+                    r.left * sx, r.top * sy, r.right * sx, r.bottom * sy,
+                ).normalized()
+            }
+            .filter { (_, r) ->
+                xPt >= r.left && xPt <= r.right && yPt >= r.top && yPt <= r.bottom
+            }
+            .minByOrNull { (_, r) -> r.width * r.height }
+            ?: return false
+
+        val coverRect = hit.second.padded(2f)
+        val fontPt = (coverRect.height * 0.72f).coerceIn(6f, 96f)
+        val text = TextEditObject(
+            pageIndex = pageIndex,
+            rectPt = coverRect,
+            text = hit.first.text.trim(),
+            fontSizePt = fontPt,
+        )
+        val obj = CoverReplaceObject(
+            pageIndex = pageIndex,
+            rectPt = coverRect,
+            fillArgb = 0xFFFFFFFF.toInt(),
+            overlayText = mutableListOf(text),
+        )
+        s.addEdit(obj)
+        refreshOverlay()
+        selectedId = obj.id
+        openEditDialogRequested = true
+        return true
+    }
+
+    private fun PdfRectF.padded(pt: Float): PdfRectF =
+        PdfRectF(left - pt, top - pt, right + pt, bottom + pt)
 
     fun selectedObject(): PdfEditObject? =
         overlay.firstOrNull { it.id == selectedId }
@@ -538,11 +754,24 @@ class PdfViewerState(private val engine: PdfEngine) {
             ?: return
         when (obj) {
             is TextEditObject -> {
-                obj.text = text
-                obj.fontSizePt = fontSizePt
-                obj.fontFamily = fontFamily
-                obj.bold = bold
-                obj.italic = italic
+                // Refit the box (font derives from box height now), keeping the
+                // top-left corner where the user placed it.
+                val r = obj.rectPt
+                val pad = 6f
+                val boxH = fontSizePt * 1.25f
+                val textW = measureTextWidthPt(text, fontSizePt, fontFamily, bold, italic)
+                val boxW = (textW + pad * 2f).coerceIn(40f, pageSizePt.width * 0.95f)
+                session?.replaceEdit(
+                    id,
+                    obj.copy(
+                        rectPt = PdfRectF(r.left, r.top, r.left + boxW, r.top + boxH),
+                        text = text,
+                        fontSizePt = fontSizePt,
+                        fontFamily = fontFamily,
+                        bold = bold,
+                        italic = italic,
+                    ),
+                )
             }
             is CoverReplaceObject -> {
                 val inner = obj.overlayText.firstOrNull()
@@ -576,6 +805,8 @@ class PdfViewerState(private val engine: PdfEngine) {
         val s = session ?: return null
         return try {
             engine.renderThumbnail(s, pageIndex, maxEdgePx = 220)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             null
         }
@@ -591,6 +822,153 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     fun rotatePagePlan(srcIndex: Int) {
         session?.rotatePage(srcIndex, 90); planVersion++
+    }
+
+    /**
+     * Rotate the page currently being viewed by [deltaDeg] (use +90 for the
+     * right arrow, -90 for the left) and re-render so it turns live. Rotation
+     * is MuPDF-level, so any overlays already on the page move with it.
+     */
+    suspend fun rotateCurrentPage(deltaDeg: Int) {
+        val s = session ?: return
+        s.rotatePage(pageIndex, deltaDeg)
+        planVersion++
+        renderCurrent()
+    }
+
+    /**
+     * Delete pages by a 1-based spec like "3", "3-7", or "2,5,9-11". Numbers
+     * refer to positions in the current page plan. At least one page is always
+     * kept. Returns how many were removed.
+     */
+    fun deletePagesByRange(spec: String): Int {
+        val s = session ?: return 0
+        val total = s.exportOrder.size
+        val positions = parsePageRange(spec, total) // 0-based, sorted desc
+        var deleted = 0
+        for (pos in positions) {
+            if (s.exportOrder.size <= 1) break
+            if (pos in s.exportOrder.indices) {
+                s.exportOrder.removeAt(pos)
+                deleted++
+            }
+        }
+        if (deleted > 0) {
+            s.hasUnsavedEdits = true
+            planVersion++
+            // Keep the viewer position valid after pages leave the plan.
+            planPos = planPos.coerceIn(0, (s.exportOrder.size - 1).coerceAtLeast(0))
+        }
+        return deleted
+    }
+
+    /** Parse "3", "3-7", "2,5,9-11" into a descending list of 0-based indices. */
+    private fun parsePageRange(spec: String, total: Int): List<Int> {
+        val out = sortedSetOf<Int>()
+        spec.split(',').forEach { token ->
+            val t = token.trim()
+            if (t.isEmpty()) return@forEach
+            val dash = t.indexOf('-')
+            if (dash > 0) {
+                val a = t.substring(0, dash).trim().toIntOrNull()
+                val b = t.substring(dash + 1).trim().toIntOrNull()
+                if (a != null && b != null) {
+                    for (n in minOf(a, b)..maxOf(a, b)) {
+                        if (n in 1..total) out.add(n - 1)
+                    }
+                }
+            } else {
+                t.toIntOrNull()?.let { if (it in 1..total) out.add(it - 1) }
+            }
+        }
+        return out.sortedDescending()
+    }
+
+    // ---- Crop ----
+
+    /**
+     * Turn a drag rectangle (in current DISPLAY points — the rotated, possibly
+     * already-cropped page the user sees) into crop fractions of the FULL
+     * rotated page, composing with any existing crop, and stash it in
+     * [pendingCropFrac] for the this-page / all-pages choice.
+     */
+    fun beginCropFromDrag(rectDisplayPt: PdfRectF) {
+        val s = session ?: return
+        val dispW = pageSizePt.width.coerceAtLeast(1f)
+        val dispH = pageSizePt.height.coerceAtLeast(1f)
+        val r = rectDisplayPt.normalized()
+        val cur = s.cropOf(pageIndex) ?: PdfRectF(0f, 0f, 1f, 1f)
+        val cw = cur.right - cur.left
+        val ch = cur.bottom - cur.top
+        var nl = cur.left + (r.left / dispW) * cw
+        var nr = cur.left + (r.right / dispW) * cw
+        var nt = cur.top + (r.top / dispH) * ch
+        var nb = cur.top + (r.bottom / dispH) * ch
+        nl = nl.coerceIn(0f, 1f); nr = nr.coerceIn(0f, 1f)
+        nt = nt.coerceIn(0f, 1f); nb = nb.coerceIn(0f, 1f)
+        // Ignore a too-small crop (e.g. an accidental tap).
+        if (nr - nl < 0.05f || nb - nt < 0.05f) {
+            cropMode = false
+            lastMessage = "Crop area too small — try dragging a larger box."
+            return
+        }
+        pendingCropFrac = PdfRectF(nl, nt, nr, nb)
+        cropMode = false
+    }
+
+    suspend fun applyPendingCrop(allPages: Boolean) {
+        val s = session ?: return
+        val frac = pendingCropFrac ?: return
+        if (allPages) s.setCropAllPages(frac) else s.setCrop(pageIndex, frac)
+        pendingCropFrac = null
+        planVersion++
+        renderCurrent()
+        lastMessage = if (allPages) "Cropped all pages." else "Cropped this page."
+    }
+
+    fun cancelPendingCrop() {
+        pendingCropFrac = null
+    }
+
+    /** Remove the crop on the current page (back to full page). */
+    suspend fun clearCropCurrent() {
+        val s = session ?: return
+        s.clearCrop(pageIndex)
+        planVersion++
+        renderCurrent()
+        lastMessage = "Crop cleared on this page."
+    }
+
+    val currentPageCropped: Boolean get() = session?.cropOf(pageIndex) != null
+
+    // ---- Add another PDF (merge) ----
+
+    /** A picked PDF awaiting the insert-position choice (Start/After/End). */
+    var pendingAddPdfUri by mutableStateOf<Uri?>(null)
+
+    val planSize: Int get() = session?.exportOrder?.size ?: 0
+
+    /** Plan position just after the page currently viewed (for "after current"). */
+    fun planPositionAfterCurrent(): Int {
+        val s = session ?: return 0
+        val idx = s.exportOrder.indexOf(pageIndex)
+        return if (idx >= 0) idx + 1 else s.exportOrder.size
+    }
+
+    suspend fun addPdf(uri: Uri, insertPos: Int) {
+        val s = session ?: return
+        busy = true
+        try {
+            val n = engine.addPdf(s, uri, insertPos)
+            planVersion++
+            lastMessage = "Added $n page(s)."
+            // Show the first added page at its plan position.
+            goToPlan(insertPos.coerceIn(0, s.exportOrder.size - 1))
+        } catch (e: Exception) {
+            lastMessage = e.message ?: "Could not add that PDF."
+        } finally {
+            busy = false
+        }
     }
 
     fun deletePagePlan(srcIndex: Int) {
@@ -631,9 +1009,12 @@ class PdfViewerState(private val engine: PdfEngine) {
         try {
             engine.exportCopy(s, targetUri)
             lastMessage = "Exported a flattened copy. Original unchanged."
-        } catch (e: Exception) {
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            android.util.Log.e("PdfSeal", "export failed", e)
             lastMessage =
-                "Export failed. Your original PDF was not changed."
+                "Export failed (${e.javaClass.simpleName}). Original unchanged."
         } finally {
             busy = false
         }

@@ -20,7 +20,8 @@ class PdfDocumentSession internal constructor(
     /** Private cache copy MuPDF opened by path; deleted on [close]. */
     private val tempFile: File? = null,
 ) {
-    val pageCount: Int = document.countPages()
+    // Dynamic: grows when another PDF is merged in via graft.
+    val pageCount: Int get() = document.countPages()
 
     private val pageSizeCache = HashMap<Int, PdfRectF>()
 
@@ -29,6 +30,18 @@ class PdfDocumentSession internal constructor(
 
     /** OCR results cached per page so we never re-OCR unnecessarily. */
     val ocrResults: MutableMap<Int, OcrPageResult> = HashMap()
+
+    /**
+     * Working copy of the document outline (bookmarks). Populated once from the
+     * PDF by [PdfEngine.loadBookmarks]; the user's add/delete edit this list.
+     * It is written back to a real PDF only by a "Save with bookmarks" save,
+     * never by the raster flatten Export.
+     */
+    val bookmarks: MutableList<Bookmark> = mutableListOf()
+    var bookmarksLoaded: Boolean = false
+        internal set
+    var bookmarksDirty: Boolean = false
+        internal set
 
     var hasUnsavedEdits: Boolean = false
         internal set
@@ -42,6 +55,31 @@ class PdfDocumentSession internal constructor(
      */
     val exportOrder: MutableList<Int> = (0 until pageCount).toMutableList()
     val extraRotation: MutableMap<Int, Int> = HashMap()
+
+    /**
+     * Per-source-page crop, stored as fractional insets (0..1) of the ROTATED
+     * page: left/top/right/bottom. Null/absent = no crop (full page). Fractions
+     * compose cleanly with rotation and let one "crop all pages" rect apply to
+     * pages of different sizes.
+     */
+    val cropFractions: MutableMap<Int, PdfRectF> = HashMap()
+
+    fun cropOf(srcIndex: Int): PdfRectF? = cropFractions[srcIndex]
+
+    fun setCrop(srcIndex: Int, frac: PdfRectF) {
+        cropFractions[srcIndex] = frac
+        hasUnsavedEdits = true
+    }
+
+    fun setCropAllPages(frac: PdfRectF) {
+        for (i in 0 until pageCount) cropFractions[i] = frac
+        hasUnsavedEdits = true
+    }
+
+    fun clearCrop(srcIndex: Int) {
+        cropFractions.remove(srcIndex)
+        hasUnsavedEdits = true
+    }
 
     fun rotatePage(srcIndex: Int, deltaDeg: Int) {
         val cur = extraRotation[srcIndex] ?: 0
@@ -64,10 +102,22 @@ class PdfDocumentSession internal constructor(
         }
     }
 
+    /**
+     * Record that [newIndices] (freshly grafted, physically appended source
+     * pages) should appear in the plan starting at position [planPos]. Existing
+     * source indices are unchanged, so rotation/crop/edit maps stay valid.
+     */
+    fun onPagesAppended(newIndices: List<Int>, planPos: Int) {
+        val pos = planPos.coerceIn(0, exportOrder.size)
+        exportOrder.addAll(pos, newIndices)
+        hasUnsavedEdits = true
+    }
+
     fun resetExportPlan() {
         exportOrder.clear()
         exportOrder.addAll(0 until pageCount)
         extraRotation.clear()
+        cropFractions.clear()
         hasUnsavedEdits = true
     }
 
@@ -80,6 +130,39 @@ class PdfDocumentSession internal constructor(
         } finally {
             page.destroy()
         }
+    }
+
+    /** Current extra rotation (0/90/180/270) applied to a source page. */
+    fun rotationOf(srcIndex: Int): Int =
+        ((extraRotation[srcIndex] ?: 0) % 360 + 360) % 360
+
+    /**
+     * Page size in PDF points AFTER the current extra rotation — width/height
+     * are swapped for 90°/270°. This is the coordinate space the viewer and the
+     * exporter both place edit overlays in, so everything stays aligned.
+     */
+    fun rotatedPageSizePt(srcIndex: Int): PdfRectF {
+        val b = pageSizePt(srcIndex)
+        return if (rotationOf(srcIndex).let { it == 90 || it == 270 }) {
+            PdfRectF(0f, 0f, b.height, b.width)
+        } else {
+            PdfRectF(0f, 0f, b.width, b.height)
+        }
+    }
+
+    /**
+     * Page size in PDF points as actually DISPLAYED/exported: rotated, then
+     * shrunk by any crop. This is the coordinate space the viewer, overlays,
+     * gestures, and exporter all use, so everything stays aligned.
+     */
+    fun displayPageSizePt(srcIndex: Int): PdfRectF {
+        val r = rotatedPageSizePt(srcIndex)
+        val c = cropOf(srcIndex) ?: return r
+        return PdfRectF(
+            0f, 0f,
+            (r.width * (c.right - c.left)).coerceAtLeast(1f),
+            (r.height * (c.bottom - c.top)).coerceAtLeast(1f),
+        )
     }
 
     fun editsFor(pageIndex: Int): MutableList<PdfEditObject> =
