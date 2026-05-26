@@ -1,0 +1,17 @@
+v1.1.1 — Editor fixes from on-device testing (Samsung Galaxy Z Flip 6):
+
+- Export coordinate fix: placed text and signatures now flatten at exactly
+  the position shown in the editor. Earlier the exported text drifted upward
+  (signatures slightly, text considerably) because the on-screen Compose
+  preview included font padding the exporter did not. Editor and exporter
+  now share the same glyph-top baseline.
+- Resize handles moved fully OUTSIDE the selection box, so the blue handles
+  no longer cover the content underneath when placing an X in a small
+  checkbox or sizing a tight box. Hit area expanded to match.
+- Undo / Redo (20-step) for move, resize, add, delete, and text edits.
+  A drag is one undo step, not one per pixel.
+- Bottom action menu redesigned as a 2-column vertical-scroll grid showing
+  two rows (four buttons) at a time. Undo and Redo are pinned to the top
+  row so they are always visible without scrolling.
+
+(All features from v1.1.0 retained. Local/offline, no ads/cloud/login.)

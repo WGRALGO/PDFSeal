@@ -4,7 +4,7 @@
 
 PDFSeal is being repaired and tested feature by feature on real hardware. The
 **source code is public** so the work can be reviewed, built, and improved. A
-**pre-release APK (v1.1.0)** is now available on the
+**pre-release APK (v1.1.1)** is now available on the
 [Releases page](https://github.com/WGRALGO/WGRALGO-PDFSeal/releases) — or build
 from source.
 
@@ -13,6 +13,22 @@ cover & replace, memory-safe flatten export) are working and verified on-device,
 but **OCR and OCR-based Edit (tap-to-edit) are not fully functional yet.** Still
 being validated end-to-end (open → edit → export → reopen elsewhere) before a
 stable release.
+
+### What's new in v1.1.1
+
+Fixes from on-device testing on a Samsung Galaxy Z Flip 6:
+
+- **Exported text/signatures land where you placed them.** The on-screen
+  Compose preview included font padding the exporter did not, so flattened
+  text drifted upward (signatures slightly, text considerably). Editor and
+  exporter now share the same glyph-top baseline.
+- **Resize handles moved fully outside the selection box.** The blue corner
+  handles no longer cover the content underneath — handy for placing an X in
+  a small checkbox or sizing a tight box. Hit area expanded to match.
+- **Undo / Redo (20-step)** for move, resize, add, delete, and text edits.
+  A drag counts as one undo step, not one per pixel.
+- **2-column scrollable bottom menu.** Two rows (four buttons) visible at a
+  time, vertical scroll for the rest. Undo / Redo pinned to the top row.
 
 ## Project Purpose
 

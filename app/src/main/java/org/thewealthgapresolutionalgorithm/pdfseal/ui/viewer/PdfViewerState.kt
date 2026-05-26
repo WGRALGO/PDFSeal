@@ -13,6 +13,7 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfEngine
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PanClamp
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.PdfRectF
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.CoverReplaceObject
+import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.EditHistory
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.HighlightObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.PdfEditObject
 import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.SignatureEditObject
@@ -96,6 +97,51 @@ class PdfViewerState(private val engine: PdfEngine) {
 
     val overlay = mutableStateListOf<PdfEditObject>()
 
+    // ---- Undo / Redo ----
+    private val history = EditHistory(maxDepth = 20)
+    var canUndo by mutableStateOf(false)
+        private set
+    var canRedo by mutableStateOf(false)
+        private set
+
+    private fun refreshHistoryFlags() {
+        canUndo = history.canUndo
+        canRedo = history.canRedo
+    }
+
+    /** Snapshot the current session edits BEFORE a reversible mutation. */
+    private fun snapEdits() {
+        val s = session ?: return
+        history.snapshot(s.edits)
+        refreshHistoryFlags()
+    }
+
+    /** Snapshot just before a gesture (move/resize/scale) begins, so the whole
+     *  drag becomes a single undo step rather than thousands of micro-events. */
+    fun snapBeforeGesture() = snapEdits()
+
+    fun undo() {
+        val s = session ?: return
+        val restored = history.undo(s.edits) ?: return
+        s.edits.clear()
+        s.edits.putAll(restored)
+        s.hasUnsavedEdits = true
+        selectedId = null
+        refreshHistoryFlags()
+        refreshOverlay()
+    }
+
+    fun redo() {
+        val s = session ?: return
+        val restored = history.redo(s.edits) ?: return
+        s.edits.clear()
+        s.edits.putAll(restored)
+        s.hasUnsavedEdits = true
+        selectedId = null
+        refreshHistoryFlags()
+        refreshOverlay()
+    }
+
     /** Document outline shown in the Bookmarks dialog. Loaded once on open. */
     val bookmarks = mutableStateListOf<Bookmark>()
 
@@ -114,6 +160,8 @@ class PdfViewerState(private val engine: PdfEngine) {
             session = engine.openDocument(uri)
             planPos = 0
             zoom = 1f; panX = 0f; panY = 0f
+            history.clear()
+            refreshHistoryFlags()
             renderCurrent()
             loadBookmarks()
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -274,6 +322,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             bold = bold,
             italic = italic,
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -336,6 +385,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             style = style,
             colorArgb = colorArgb,
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -368,6 +418,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             rectPt = n,
             zOrder = -1, // under any replacement text added on top
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -388,6 +439,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             rectPt = sel.rectPt.normalized(),
             zOrder = 10_000,
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -402,6 +454,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             rectPt = sel.rectPt.normalized(),
             zOrder = 10_001,
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -561,6 +614,7 @@ class PdfViewerState(private val engine: PdfEngine) {
     fun deleteSelected() {
         val id = selectedId ?: return
         val obj = session?.editsFor(pageIndex)?.firstOrNull { it.id == id } ?: return
+        snapEdits()
         session?.removeEdit(obj)
         selectedId = null
         refreshOverlay()
@@ -705,6 +759,7 @@ class PdfViewerState(private val engine: PdfEngine) {
             fillArgb = 0xFFFFFFFF.toInt(),
             overlayText = mutableListOf(text),
         )
+        snapEdits()
         s.addEdit(obj)
         refreshOverlay()
         selectedId = obj.id
@@ -752,6 +807,7 @@ class PdfViewerState(private val engine: PdfEngine) {
         val id = selectedId ?: return
         val obj = session?.editsFor(pageIndex)?.firstOrNull { it.id == id }
             ?: return
+        snapEdits()
         when (obj) {
             is TextEditObject -> {
                 // Refit the box (font derives from box height now), keeping the

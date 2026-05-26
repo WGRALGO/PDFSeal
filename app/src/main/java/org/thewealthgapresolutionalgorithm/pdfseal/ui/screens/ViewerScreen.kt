@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
@@ -196,67 +197,104 @@ fun ViewerScreen(
                         }
                         HorizontalDivider()
                     }
-                    Row(
+                    // Bottom menu: 2-column vertical-scroll grid showing
+                    // 2 rows (4 buttons) at a time. Undo/Redo pinned as the
+                    // top row so they're always visible without scrolling.
+                    val rows: List<Pair<MenuAction?, MenuAction?>> = buildList {
+                        add(
+                            MenuAction("Undo", state.canUndo && !state.busy) {
+                                state.undo()
+                            } to MenuAction("Redo", state.canRedo && !state.busy) {
+                                state.redo()
+                            },
+                        )
+                        add(
+                            MenuAction("Prev",
+                                state.planPos > 0 && !state.busy) {
+                                scope.launch {
+                                    state.goToForEditing(state.planPos - 1)
+                                }
+                            } to MenuAction("Next",
+                                state.planPos < state.navCount - 1 &&
+                                    !state.busy) {
+                                scope.launch {
+                                    state.goToForEditing(state.planPos + 1)
+                                }
+                            },
+                        )
+                        val pageLabel = if (state.navCount > 0) {
+                            "Go to (${state.planPos + 1}/${state.navCount})"
+                        } else "Go to page"
+                        add(
+                            MenuAction(pageLabel,
+                                !state.busy && state.navCount > 0) {
+                                showGoTo = true
+                            } to MenuAction("Pages…",
+                                !state.busy && state.pageCount > 0) {
+                                showThumbs = true
+                            },
+                        )
+                        add(
+                            MenuAction("Add Text", !state.busy) {
+                                showTextDialog = true
+                            } to MenuAction("Signature",
+                                !state.busy && state.pageCount > 0) {
+                                showSignatureDialog = true
+                            },
+                        )
+                        add(
+                            MenuAction("Search",
+                                !state.busy && state.pageCount > 0) {
+                                showSearchPanel = true
+                            } to MenuAction("OCR",
+                                !state.busy && state.pageCount > 0) {
+                                scope.launch { state.runOcrCurrent() }
+                            },
+                        )
+                        add(
+                            MenuAction(
+                                if (state.editTapMode) "Done editing"
+                                else "Edit",
+                                !state.busy && state.pageCount > 0,
+                            ) {
+                                if (state.editTapMode) state.exitEditMode()
+                                else scope.launch { state.enterEditMode() }
+                            } to MenuAction("Export",
+                                !state.busy && state.pageCount > 0,
+                                primary = true) {
+                                showExportWarning = true
+                            },
+                        )
+                    }
+                    // Fixed 2-row viewport (~120dp) with vertical scroll for
+                    // the remaining rows. Each row ~56dp tall incl. padding.
+                    val rowHeight = 56.dp
+                    val visibleRows = 2
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
+                            .height(rowHeight * visibleRows + 16.dp)
+                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        BarButton("Prev",
-                            enabled = state.planPos > 0 && !state.busy) {
-                            scope.launch { state.goToForEditing(state.planPos - 1) }
-                        }
-                        OutlinedButton(
-                            enabled = !state.busy && state.navCount > 0,
-                            onClick = { showGoTo = true },
-                        ) {
-                            Text(
-                                if (state.navCount > 0) {
-                                    "${state.planPos + 1}/${state.navCount}"
-                                } else "—",
-                            )
-                        }
-                        BarButton("Next",
-                            enabled = state.planPos < state.navCount - 1 &&
-                                !state.busy) {
-                            scope.launch { state.goToForEditing(state.planPos + 1) }
-                        }
-                        BarButton("Pages…",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            showThumbs = true
-                        }
-                        BarSeparator()
-                        BarButton("Add Text", enabled = !state.busy) {
-                            showTextDialog = true
-                        }
-                        BarButton("Signature",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            showSignatureDialog = true
-                        }
-                        BarButton("Search",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            showSearchPanel = true
-                        }
-                        BarButton("OCR",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            scope.launch { state.runOcrCurrent() }
-                        }
-                        BarButton(
-                            if (state.editTapMode) "Done editing" else "Edit",
-                            enabled = !state.busy && state.pageCount > 0) {
-                            if (state.editTapMode) {
-                                state.exitEditMode()
-                            } else {
-                                scope.launch { state.enterEditMode() }
+                        rows.forEach { (left, right) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                GridButton(
+                                    action = left,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                GridButton(
+                                    action = right,
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
                         }
-                        BarSeparator()
-                        Button(
-                            enabled = !state.busy && state.pageCount > 0,
-                            onClick = { showExportWarning = true },
-                        ) { Text("Export") }
                     }
                 }
             }
@@ -304,7 +342,11 @@ fun ViewerScreen(
                             translationY = state.panY,
                         )
                         .pointerInput(bmp, scale) {
-                            val handleTolPt = 30f / scale
+                            // Handles are drawn 18dp × 18dp OUTSIDE the
+                            // selection rect, so the centre of a handle sits
+                            // ~9dp out from the corner and the far edge ~18dp
+                            // out. Tolerance covers the far edge at any zoom.
+                            val handleTolPt = (40f / scale).coerceAtLeast(22f)
                             awaitEachGesture {
                                 val down =
                                     awaitFirstDown(requireUnconsumed = false)
@@ -333,6 +375,13 @@ fun ViewerScreen(
                                             GestureMode.MOVE
                                         } else GestureMode.PAN
                                     }
+                                }
+                                // One undo step per drag — snapshot at gesture
+                                // START for MOVE/RESIZE; PAN doesn't touch
+                                // edits so it's never recorded.
+                                if (mode == GestureMode.MOVE ||
+                                    mode == GestureMode.RESIZE) {
+                                    state.snapBeforeGesture()
                                 }
                                 var moved = false
                                 do {
@@ -702,4 +751,36 @@ private fun BarSeparator() {
             .height(28.dp)
             .background(MaterialTheme.colorScheme.outlineVariant),
     )
+}
+
+/** Description of a single cell in the bottom 2-column grid menu. */
+private data class MenuAction(
+    val label: String,
+    val enabled: Boolean,
+    val primary: Boolean = false,
+    val onClick: () -> Unit,
+)
+
+@Composable
+private fun GridButton(
+    action: MenuAction?,
+    modifier: Modifier = Modifier,
+) {
+    if (action == null) {
+        Spacer(modifier)
+        return
+    }
+    if (action.primary) {
+        Button(
+            enabled = action.enabled,
+            onClick = action.onClick,
+            modifier = modifier,
+        ) { Text(action.label, maxLines = 1) }
+    } else {
+        FilledTonalButton(
+            enabled = action.enabled,
+            onClick = action.onClick,
+            modifier = modifier,
+        ) { Text(action.label, maxLines = 1) }
+    }
 }

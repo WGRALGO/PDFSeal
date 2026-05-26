@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Text
 import androidx.compose.ui.unit.Dp
@@ -28,8 +31,13 @@ import org.thewealthgapresolutionalgorithm.pdfseal.engine.edit.TextEditObject
  * Visual overlay. Renders each edit object with Compose at the SAME geometry
  * and size the exporter ([org.thewealthgapresolutionalgorithm.pdfseal.engine
  * .edit.EditObjectPainter]) uses, so the on-screen preview reflects the
- * exported result. This fixes the old bugs where the overlay drew a fixed
- * tiny label that ignored font size and the signature font.
+ * exported result.
+ *
+ * Compose Text styled with includeFontPadding=false and a Top-aligned trimmed
+ * LineHeightStyle so the glyph TOP sits exactly at the box top — the same
+ * placement EditObjectPainter uses (drawText at `r.top - paint.ascent()`).
+ * Without this the overlay rendered each line ~0.15 * fontSize lower than the
+ * exporter, so flattened output appeared shifted UP relative to the preview.
  *
  * Input (select / move / resize / pan / zoom) is owned by the single gesture
  * handler in ViewerScreen — this layer never consumes pointers.
@@ -45,6 +53,14 @@ fun EditObjectsLayer(
 ) {
     fun Float.pt2dp(): Dp = (this * scalePxPerPt / densityPxPerDp).dp
     fun Float.ptPx(): Float = this * scalePxPerPt
+
+    val tightTextStyle = TextStyle(
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Top,
+            trim = LineHeightStyle.Trim.Both,
+        ),
+    )
 
     Box(Modifier.fillMaxSize()) {
         val items = state.overlay.sortedBy { it.zOrder }
@@ -106,6 +122,7 @@ fun EditObjectsLayer(
                                         else FontStyle.Normal,
                                     softWrap = false,
                                     overflow = TextOverflow.Visible,
+                                    style = tightTextStyle,
                                 )
                             }
                         }
@@ -125,6 +142,7 @@ fun EditObjectsLayer(
                                     fontSize = sizeSp,
                                     softWrap = false,
                                     overflow = TextOverflow.Visible,
+                                    style = tightTextStyle,
                                 )
                             }
                         }
@@ -138,6 +156,7 @@ fun EditObjectsLayer(
                                             densityPxPerDp).sp,
                                     softWrap = false,
                                     overflow = TextOverflow.Visible,
+                                    style = tightTextStyle,
                                 )
                             }
                         is HighlightObject -> Unit
@@ -157,35 +176,37 @@ fun EditObjectsLayer(
                         }
                     }
 
-                    // Four corner handles on the selected object — drag any
-                    // corner to resize with aspect locked (see
+                    // Four corner handles on the selected object — placed
+                    // fully OUTSIDE the bounding rect so they never cover the
+                    // content (the old layout centred handles on each corner,
+                    // which over a small selection blanketed the interior).
+                    // Drag any corner to resize with aspect locked (see
                     // PdfViewerState.resizeSelectedByCorner).
                     if (isSel) {
                         val wDp = (r.right - r.left).pt2dp()
                         val hDp = (r.bottom - r.top).pt2dp()
                         val handle = 18.dp
-                        val off = 9.dp
                         Box(
                             Modifier
-                                .offset(x = -off, y = -off)
+                                .offset(x = -handle, y = -handle)
                                 .size(handle)
                                 .background(Color(0xFF1F6FEB)),
                         )
                         Box(
                             Modifier
-                                .offset(x = wDp - off, y = -off)
+                                .offset(x = wDp, y = -handle)
                                 .size(handle)
                                 .background(Color(0xFF1F6FEB)),
                         )
                         Box(
                             Modifier
-                                .offset(x = -off, y = hDp - off)
+                                .offset(x = -handle, y = hDp)
                                 .size(handle)
                                 .background(Color(0xFF1F6FEB)),
                         )
                         Box(
                             Modifier
-                                .offset(x = wDp - off, y = hDp - off)
+                                .offset(x = wDp, y = hDp)
                                 .size(handle)
                                 .background(Color(0xFF1F6FEB)),
                         )
